@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { TOKEN_KEY } from "../api/client";
 import { authApi } from "../api/endpoints";
@@ -28,9 +29,11 @@ function leerSesion(): Sesion | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<Sesion | null>(leerSesion);
+  const queryClient = useQueryClient();
 
   const login = async (email: string, password: string) => {
     const t = await authApi.login(email, password);
+    queryClient.clear(); // evita mostrar datos cacheados de otro usuario
     const nueva = { rol: t.rol, nombre: t.nombre };
     localStorage.setItem(TOKEN_KEY, t.access_token);
     localStorage.setItem(SESION_KEY, JSON.stringify(nueva));
@@ -41,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SESION_KEY);
+    queryClient.clear();
     setSesion(null);
   };
 

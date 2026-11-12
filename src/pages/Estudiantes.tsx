@@ -1,5 +1,5 @@
 import {
-  Card, FormControl, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, Stack, Table,
+  Avatar, Card, FormControl, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, Stack, Table,
   TableBody, TableCell, TableHead, TableRow, TextField, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { aulasApi, estudiantesApi } from "../api/endpoints";
 import type { Riesgo } from "../api/types";
 import { Cargando, ErrorApi, SemaforoChip, Titulo } from "../components/comunes";
+import { iniciales, SEMAFORO } from "../theme";
 
 const ORDEN: Record<string, number> = { rojo: 0, amarillo: 1, verde: 2 };
 
@@ -81,7 +82,15 @@ export default function Estudiantes() {
                 {filtrados.map((e) => (
                   <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => navigate(`/estudiantes/${e.id}`)}>
                     <TableCell>{e.codigo}</TableCell>
-                    <TableCell>{e.apellidos}, {e.nombres}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Avatar sx={{ width: 32, height: 32, fontSize: 13, fontWeight: 700,
+                          bgcolor: e.riesgo ? SEMAFORO[e.riesgo].fondo : "#eef2ff", color: e.riesgo ? SEMAFORO[e.riesgo].color : "primary.main" }}>
+                          {iniciales(`${e.nombres} ${e.apellidos}`)}
+                        </Avatar>
+                        <span style={{ fontWeight: 600 }}>{e.apellidos}, {e.nombres}</span>
+                      </Stack>
+                    </TableCell>
                     <TableCell>{nombreAula(e.aula_id)}</TableCell>
                     <TableCell><SemaforoChip riesgo={e.riesgo} probabilidad={e.probabilidad} /></TableCell>
                   </TableRow>

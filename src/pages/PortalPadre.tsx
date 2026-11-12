@@ -26,9 +26,9 @@ export default function PortalPadre() {
     <>
       <Titulo
         subtitulo="Resumen del avance escolar y recomendaciones para el hogar"
-        accion={<Button variant="outlined" onClick={() => navigate("/encuesta")}>Completar encuesta familiar</Button>}
+        accion={<Button variant="contained" onClick={() => navigate("/encuesta")}>Completar encuesta familiar</Button>}
       >
-        {hijo ? `${hijo.nombres} ${hijo.apellidos}` : "Mi hijo(a)"}
+        Seguimiento de mi hijo(a)
       </Titulo>
       {hijos.data.length > 1 && (
         <Tabs value={seleccion} onChange={(_, v) => setSeleccion(v)} sx={{ mb: 2 }} variant="scrollable">

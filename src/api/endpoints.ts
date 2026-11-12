@@ -1,4 +1,4 @@
-import { api } from "./client";
+import { api, USE_MOCKS } from "./client";
 import type {
   Acta, Alerta, Aula, ConfigRiesgo, Dashboard, Encuesta, Estudiante, Evento, Ficha,
   ResultadoIngesta, ResultadoPrediccion, Token,
@@ -30,7 +30,11 @@ export const riesgoApi = {
   config: () => api.get<ConfigRiesgo>("/config/riesgo").then((r) => r.data),
   guardarConfig: (c: ConfigRiesgo) => api.put<ConfigRiesgo>("/config/riesgo", c).then((r) => r.data),
   descargarPdf: async (aulaId: number, nombre: string) => {
-    const r = await api.get(`/reportes/aula/${aulaId}/pdf`, { responseType: "blob" });
+    if (USE_MOCKS) {
+      window.alert("En la demo no se genera el PDF. Está disponible al conectar el backend de EduTrack.");
+      return;
+    }
+    const r =await api.get(`/reportes/aula/${aulaId}/pdf`, { responseType: "blob" });
     const url = URL.createObjectURL(r.data as Blob);
     const a = document.createElement("a");
     a.href = url;
