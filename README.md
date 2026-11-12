@@ -4,6 +4,19 @@ Aplicación web **responsive** de EduTrack: dashboard con semáforos de riesgo, 
 
 **Stack:** React 18 · Vite · TypeScript · Material UI · TanStack Query · Recharts · Axios
 
+🚀 **Demo en línea:** https://edutrack-frontend-theta.vercel.app (modo demo con datos sintéticos; entra con los botones de rol)
+
+## Despliegue en Vercel
+
+`vercel.json` compila con `VITE_USE_MOCKS=true`, así la demo funciona sin backend. Para publicar cambios:
+
+```bash
+npx vercel login
+npx vercel deploy --prod
+```
+
+Cuando el backend esté en AWS, quita `VITE_USE_MOCKS=true` del `buildCommand` y define `VITE_API_URL` con la URL pública de la API (y agrégala a `CORS_ORIGINS` del backend).
+
 ## Inicio rápido
 
 ```bash

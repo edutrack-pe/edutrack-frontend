@@ -153,3 +153,5 @@ dist/
 .env.local
 !.env.example
 *.tsbuildinfo
+
+.vercel
