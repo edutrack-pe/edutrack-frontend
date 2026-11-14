@@ -93,7 +93,7 @@ export function Prediccion() {
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
                   {(["rojo", "amarillo", "verde"] as const).map((r) => (
                     <Chip key={r} label={`${SEMAFORO[r].etiqueta}: ${predecir.data.resumen[r]}`}
-                      sx={{ bgcolor: SEMAFORO[r].fondo, color: SEMAFORO[r].color, fontWeight: 700 }} />
+                      sx={{ bgcolor: SEMAFORO[r].fondo, color: SEMAFORO[r].texto, fontWeight: 700 }} />
                   ))}
                 </Stack>
                 {predecir.data.sin_datos.length > 0 && (

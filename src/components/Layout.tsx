@@ -21,7 +21,7 @@ import { USE_MOCKS } from "../api/client";
 import { alertasApi } from "../api/endpoints";
 import type { Rol } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { iniciales, MARCA } from "../theme";
+import { FUENTE_TITULO, iniciales, MARCA } from "../theme";
 import { Logo } from "./Logo";
 
 interface ItemMenu {
@@ -32,12 +32,12 @@ interface ItemMenu {
 }
 
 export const MENU: ItemMenu[] = [
-  { ruta: "/dashboard", texto: "Dashboard", icono: <DashboardIcon />, roles: ["director", "tutor", "analista", "docente"] },
+  { ruta: "/dashboard", texto: "Panorama", icono: <DashboardIcon />, roles: ["director", "tutor", "analista", "docente"] },
   { ruta: "/portal", texto: "Mi hijo(a)", icono: <FamilyRestroomIcon />, roles: ["padre"] },
   { ruta: "/estudiantes", texto: "Estudiantes", icono: <PeopleIcon />, roles: ["director", "docente", "tutor", "analista"] },
   { ruta: "/alertas", texto: "Alertas", icono: <NotificationsIcon />, roles: ["tutor", "director"] },
   { ruta: "/actas", texto: "Actas de tutoría", icono: <DescriptionIcon />, roles: ["tutor"] },
-  { ruta: "/carga", texto: "Carga CSV / Excel", icono: <UploadFileIcon />, roles: ["docente", "analista", "director"] },
+  { ruta: "/carga", texto: "Cargar notas", icono: <UploadFileIcon />, roles: ["docente", "analista", "director"] },
   { ruta: "/prediccion", texto: "Calcular riesgo", icono: <AssessmentIcon />, roles: ["analista", "director", "tutor"] },
   { ruta: "/encuesta", texto: "Encuesta familiar", icono: <QuizIcon />, roles: ["padre"] },
   { ruta: "/calendario", texto: "Calendario", icono: <CalendarMonthIcon />, roles: ["director", "docente", "tutor", "padre", "analista"] },
@@ -48,7 +48,7 @@ const NOMBRE_ROL: Record<Rol, string> = {
   director: "Dirección", docente: "Docente", tutor: "Tutor(a)", padre: "Apoderado(a)", analista: "Analista",
 };
 
-const ANCHO = 264;
+const ANCHO = 248;
 
 export function Layout() {
   const { sesion, logout } = useAuth();
@@ -64,14 +64,12 @@ export function Layout() {
 
   const items = MENU.filter((m) => sesion && m.roles.includes(sesion.rol));
   const actual = MENU.find((m) => location.pathname.startsWith(m.ruta));
-  const fecha = new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" });
-  const hoy = fecha.charAt(0).toUpperCase() + fecha.slice(1);
 
   const menu = (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", background: MARCA.sidebar, color: "#e0e7ff" }}>
-      <Box sx={{ px: 2.5, py: 2.5 }}><Logo claro /></Box>
-      <Typography variant="overline" sx={{ px: 3, color: "#a5b4fc", fontSize: 11 }}>Menú</Typography>
-      <List sx={{ flex: 1, px: 1.5 }}>
+    <Box component="nav" aria-label="Menú principal"
+      sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: MARCA.pizarra, color: MARCA.tizaTexto }}>
+      <Box sx={{ px: 2.5, pt: 3, pb: 3 }}><Logo claro /></Box>
+      <List sx={{ flex: 1, px: 1.5, pt: 0 }}>
         {items.map((m) => (
           <ListItemButton
             key={m.ruta}
@@ -79,30 +77,29 @@ export function Layout() {
             to={m.ruta}
             onClick={() => setAbierto(false)}
             sx={{
-              borderRadius: 2.5, mb: 0.5, color: "#c7d2fe", py: 1,
-              "& .MuiListItemIcon-root": { color: "#a5b4fc", minWidth: 38 },
-              "&:hover": { bgcolor: "rgba(255,255,255,.07)", color: "#fff" },
-              "&.active": { bgcolor: "rgba(255,255,255,.14)", color: "#fff", boxShadow: "inset 3px 0 0 #2dd4bf",
-                "& .MuiListItemIcon-root": { color: "#2dd4bf" } },
+              borderRadius: 2, mb: 0.25, color: MARCA.tizaTexto, py: 0.9,
+              "& .MuiListItemIcon-root": { color: MARCA.tizaApagada, minWidth: 36 },
+              "&:hover": { bgcolor: "rgba(255,255,255,.06)" },
+              "&.active": { bgcolor: "#fff", color: MARCA.pizarra, "& .MuiListItemIcon-root": { color: MARCA.pizarra } },
             }}
           >
             <ListItemIcon>
               {m.ruta === "/alertas" ? <Badge color="error" badgeContent={pendientes} max={99}>{m.icono}</Badge> : m.icono}
             </ListItemIcon>
-            <ListItemText primary={m.texto} primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }} />
+            <ListItemText primary={m.texto} primaryTypographyProps={{ fontSize: 14.5, fontWeight: 700 }} />
           </ListItemButton>
         ))}
       </List>
-      <Box sx={{ m: 1.5, p: 1.5, borderRadius: 3, bgcolor: "rgba(255,255,255,.08)", display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Avatar sx={{ bgcolor: "#2dd4bf", color: MARCA.oscuro, fontWeight: 800, width: 38, height: 38, fontSize: 15 }}>
+      <Box sx={{ mx: 1.5, mb: 1.5, px: 1.5, py: 1.25, borderTop: "1px solid rgba(255,255,255,.12)", display: "flex", alignItems: "center", gap: 1.25 }}>
+        <Avatar sx={{ bgcolor: MARCA.tizaTexto, color: MARCA.pizarra, fontWeight: 700, width: 34, height: 34, fontSize: 14 }}>
           {iniciales(sesion?.nombre ?? "")}
         </Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography fontSize={14} fontWeight={700} color="#fff" noWrap>{sesion?.nombre}</Typography>
-          <Typography fontSize={12} color="#a5b4fc">{sesion ? NOMBRE_ROL[sesion.rol] : ""}</Typography>
+          <Typography fontSize={12.5} color={MARCA.tizaApagada}>{sesion ? NOMBRE_ROL[sesion.rol] : ""}</Typography>
         </Box>
         <Tooltip title="Cerrar sesión">
-          <IconButton size="small" sx={{ color: "#c7d2fe" }} onClick={() => { logout(); navigate("/login"); }} aria-label="Cerrar sesión">
+          <IconButton size="small" sx={{ color: MARCA.tizaApagada }} onClick={() => { logout(); navigate("/login"); }} aria-label="Cerrar sesión">
             <LogoutIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -112,25 +109,19 @@ export function Layout() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      <AppBar position="fixed" color="inherit" elevation={0}
-        sx={{ bgcolor: "rgba(245,246,251,.85)", backdropFilter: "blur(8px)", borderBottom: 1, borderColor: "divider",
-              width: { md: `calc(100% - ${ANCHO}px)` }, ml: { md: `${ANCHO}px` } }}>
-        <Toolbar sx={{ gap: 1.5 }}>
-          {movil && <IconButton edge="start" onClick={() => setAbierto(true)} aria-label="Abrir menú"><MenuIcon /></IconButton>}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography fontWeight={700} noWrap>{actual?.texto ?? "EduTrack"}</Typography>
-            {!movil && <Typography variant="caption" color="text.secondary">{hoy}</Typography>}
-          </Box>
-          {USE_MOCKS && <Chip size="small" color="warning" variant="outlined" label={movil ? "Demo" : "Demo · datos de prueba"} />}
-          {veAlertas && (
-            <Tooltip title="Alertas sin leer">
-              <IconButton onClick={() => navigate("/alertas")} aria-label="Alertas">
+      {movil && (
+        <AppBar position="fixed" elevation={0} sx={{ bgcolor: MARCA.pizarra }}>
+          <Toolbar sx={{ gap: 1 }}>
+            <IconButton edge="start" color="inherit" onClick={() => setAbierto(true)} aria-label="Abrir menú"><MenuIcon /></IconButton>
+            <Typography sx={{ flex: 1, fontFamily: FUENTE_TITULO, fontWeight: 700 }} noWrap>{actual?.texto ?? "EduTrack"}</Typography>
+            {veAlertas && (
+              <IconButton color="inherit" onClick={() => navigate("/alertas")} aria-label={`Alertas sin leer: ${pendientes}`}>
                 <Badge color="error" badgeContent={pendientes} max={99}><NotificationsIcon /></Badge>
               </IconButton>
-            </Tooltip>
-          )}
-        </Toolbar>
-      </AppBar>
+            )}
+          </Toolbar>
+        </AppBar>
+      )}
       <Drawer
         variant={movil ? "temporary" : "permanent"}
         open={movil ? abierto : true}
@@ -139,8 +130,14 @@ export function Layout() {
       >
         {menu}
       </Drawer>
-      <Box component="main" sx={{ flex: 1, minWidth: 0, px: { xs: 2, md: 4 }, pb: 4, pt: { xs: 10, md: 11 }, maxWidth: 1400, mx: "auto", width: "100%" }}>
-        <Outlet />
+      <Box component="main" sx={{ flex: 1, minWidth: 0, px: { xs: 2, sm: 3, lg: 5 }, pb: 6, pt: { xs: 10, md: 4 } }}>
+        <Box sx={{ maxWidth: 1320, mx: "auto" }}>
+          {USE_MOCKS && (
+            <Chip size="small" variant="outlined" label="Demo con datos de prueba"
+              sx={{ mb: 2, borderColor: MARCA.linea, color: MARCA.grafito, fontWeight: 700 }} />
+          )}
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );

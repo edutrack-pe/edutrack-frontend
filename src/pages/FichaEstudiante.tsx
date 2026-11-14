@@ -34,7 +34,7 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
             <Grid container spacing={3} alignItems="center">
               <Grid size={{ xs: 12, md: 5 }}>
                 <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar sx={{ width: 64, height: 64, fontSize: 22, fontWeight: 800, bgcolor: s?.fondo ?? "#eef2ff", color: s?.color ?? "primary.main" }}>
+                  <Avatar sx={{ width: 64, height: 64, fontSize: 22, fontWeight: 800, bgcolor: s?.fondo ?? "#e9efec", color: s?.color ?? "primary.main" }}>
                     {iniciales(`${e.nombres} ${e.apellidos}`)}
                   </Avatar>
                   <Box sx={{ minWidth: 0 }}>
@@ -60,7 +60,7 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
                         </Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5 }}>
                           {p.factores.map((f) => (
-                            <Chip key={f} label={NOMBRE_FACTOR[f] ?? f} sx={{ bgcolor: s!.fondo, color: s!.color }} />
+                            <Chip key={f} label={NOMBRE_FACTOR[f] ?? f} sx={{ bgcolor: s!.fondo, color: s!.texto }} />
                           ))}
                         </Stack>
                       </Box>
@@ -77,15 +77,15 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
 
       <Grid size={{ xs: 12, sm: 4 }}>
         <KpiCard titulo="Promedio" valor={promedio != null ? promedio.toFixed(1) : "-"} icono={<SchoolIcon />}
-          color={promedio != null && promedio < 11 ? SEMAFORO.rojo.color : "#4f46e5"} detalle="Escala vigesimal" />
+          color={promedio != null && promedio < 11 ? SEMAFORO.rojo.color : "#1d3a33"} detalle="Escala vigesimal" />
       </Grid>
       <Grid size={{ xs: 6, sm: 4 }}>
         <KpiCard titulo="Asistencia" valor={asistencia != null ? `${asistencia}%` : "-"} icono={<EventAvailableIcon />}
-          color={asistencia != null && asistencia < 85 ? SEMAFORO.amarillo.color : "#0d9488"} detalle={`${ficha.inasistencias} faltas`} />
+          color={asistencia != null && asistencia < 85 ? SEMAFORO.amarillo.color : "#14866d"} detalle={`${ficha.inasistencias} faltas`} />
       </Grid>
       <Grid size={{ xs: 6, sm: 4 }}>
         <KpiCard titulo="Tareas entregadas" valor={tareas != null ? `${tareas}%` : "-"} icono={<AssignmentIcon />}
-          color={tareas != null && tareas < 70 ? SEMAFORO.amarillo.color : "#0d9488"} />
+          color={tareas != null && tareas < 70 ? SEMAFORO.amarillo.color : "#14866d"} />
       </Grid>
 
       <Grid size={{ xs: 12, md: 7 }}>
@@ -122,14 +122,15 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
             <Typography variant="h6" sx={{ mb: 2 }}>Notas por curso</Typography>
             <Stack spacing={2}>
               {notas.map((n) => {
-                const color = n.valor < 11 ? SEMAFORO.rojo.color : n.valor < 14 ? SEMAFORO.amarillo.color : SEMAFORO.verde.color;
+                const nivel = SEMAFORO[n.valor < 11 ? "rojo" : n.valor < 14 ? "amarillo" : "verde"];
+                const color = nivel.color;
                 return (
                   <Box key={n.id}>
                     <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
-                      <Typography fontSize={14} fontWeight={600}>{n.curso}
-                        <Typography component="span" fontSize={12} color="text.secondary"> · B{n.bimestre}</Typography>
+                      <Typography fontSize={14} fontWeight={700}>{n.curso}
+                        <Typography component="span" fontSize={12} color="text.secondary"> (bimestre {n.bimestre})</Typography>
                       </Typography>
-                      <Typography fontSize={14} fontWeight={800} sx={{ color }}>{n.valor}</Typography>
+                      <Typography fontSize={14} fontWeight={800} sx={{ color: nivel.texto }}>{n.valor}</Typography>
                     </Stack>
                     <LinearProgress variant="determinate" value={(n.valor / 20) * 100}
                       sx={{ height: 8, bgcolor: "#f1f5f9", "& .MuiLinearProgress-bar": { bgcolor: color } }} />

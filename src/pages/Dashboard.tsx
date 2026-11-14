@@ -1,262 +1,182 @@
-import ArrowForwardIcon from "@mui/icons-material/ArrowForwardRounded";
-import CheckCircleIcon from "@mui/icons-material/CheckCircleOutlineRounded";
-import ErrorIcon from "@mui/icons-material/ErrorOutlineRounded";
-import EventIcon from "@mui/icons-material/EventRounded";
-import GroupsIcon from "@mui/icons-material/GroupsOutlined";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdfOutlined";
-import WarningIcon from "@mui/icons-material/WarningAmberRounded";
-import {
-  Avatar, Box, Button, Card, CardContent, Grid2 as Grid, List, ListItemAvatar, ListItemButton, ListItemText,
-  Stack, Typography,
-} from "@mui/material";
+import { Box, Button, List, ListItemButton, Stack, Typography } from "@mui/material";
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { mensajeError } from "../api/client";
 import { calendarioApi, estudiantesApi, riesgoApi } from "../api/endpoints";
+import type { Estudiante, Evento } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { Cargando, ErrorApi, KpiCard, SemaforoChip, Vacio } from "../components/comunes";
-import { iniciales, MARCA, SEMAFORO } from "../theme";
+import { Cargando, ErrorApi } from "../components/comunes";
+import { FranjaSemaforo, MapaAula } from "../components/MapaAula";
+import { FUENTE_TITULO, MARCA, SEMAFORO } from "../theme";
 
-function saludo(): string {
-  const h = new Date().getHours();
-  return h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches";
+const fechaLarga = (iso: string) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" });
+
+function Panel({ titulo, detalle, accion, children }: { titulo: string; detalle?: string; accion?: ReactNode; children: ReactNode }) {
+  return (
+    <Box component="section" sx={{ bgcolor: MARCA.papel, border: `1px solid ${MARCA.linea}`, borderRadius: 3, p: { xs: 2, md: 2.5 }, height: "100%" }}>
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2 }}>
+        <Box>
+          <Typography variant="h6" component="h2">{titulo}</Typography>
+          {detalle && <Typography fontSize={13.5} color="text.secondary">{detalle}</Typography>}
+        </Box>
+        {accion}
+      </Box>
+      {children}
+    </Box>
+  );
+}
+
+/** Próximos 8 días: una columna por día, las evaluaciones caen en su fecha. */
+function SemanaEvaluaciones({ eventos }: { eventos: Evento[] }) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const dias = Array.from({ length: 9 }, (_, i) => new Date(hoy.getTime() + i * 86_400_000));
+  const clave = (d: Date) => d.toISOString().slice(0, 10);
+
+  return (
+    <Box sx={{ overflowX: "auto", mx: { xs: -2, md: 0 }, px: { xs: 2, md: 0 } }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(9, minmax(92px, 1fr))", gap: 0.75, minWidth: 840 }}>
+        {dias.map((d, i) => {
+          const delDia = eventos.filter((e) => e.fecha === clave(d));
+          const finDeSemana = d.getDay() === 0 || d.getDay() === 6;
+          return (
+            <Box key={i} sx={{ borderTop: `3px solid ${i === 0 ? MARCA.pizarra : delDia.length ? SEMAFORO.amarillo.color : MARCA.linea}`,
+                               pt: 1, opacity: finDeSemana && !delDia.length ? 0.55 : 1 }}>
+              <Typography fontSize={12.5} color="text.secondary" sx={{ textTransform: "capitalize" }}>
+                {i === 0 ? "Hoy" : d.toLocaleDateString("es-PE", { weekday: "short" }).replace(".", "")}
+              </Typography>
+              <Typography sx={{ fontFamily: FUENTE_TITULO, fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>{d.getDate()}</Typography>
+              <Stack spacing={0.75} sx={{ mt: 1 }}>
+                {delDia.map((e) => (
+                  <Box key={e.id} sx={{ bgcolor: SEMAFORO.amarillo.fondo, borderRadius: 1, px: 1, py: 0.75 }}>
+                    <Typography fontSize={12.5} fontWeight={700} sx={{ lineHeight: 1.25, color: MARCA.tinta }}>
+                      {e.titulo.replace("Evaluación bimestral de ", "")}
+                    </Typography>
+                    <Typography fontSize={11.5} color="text.secondary">Evaluación bimestral</Typography>
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
+function FilaPrioridad({ e, aula, onClick }: { e: Estudiante; aula: string; onClick: () => void }) {
+  const p = Math.round((e.probabilidad ?? 0) * 100);
+  return (
+    <ListItemButton onClick={onClick} sx={{ borderRadius: 2, px: 1, py: 1, gap: 1.5, alignItems: "center" }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography fontWeight={700} fontSize={14.5} noWrap>{e.apellidos}, {e.nombres}</Typography>
+        <Typography fontSize={12.5} color="text.secondary">Aula {aula}, {e.codigo}</Typography>
+      </Box>
+      <Box sx={{ width: 92, flexShrink: 0 }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Typography fontSize={13} fontWeight={700} color={SEMAFORO.rojo.texto}>{p}%</Typography>
+        </Box>
+        <Box sx={{ height: 6, bgcolor: SEMAFORO.rojo.fondo, borderRadius: 99, overflow: "hidden" }}>
+          <Box sx={{ width: `${p}%`, height: "100%", bgcolor: SEMAFORO.rojo.color, borderRadius: 99 }} />
+        </Box>
+      </Box>
+    </ListItemButton>
+  );
 }
 
 export default function Dashboard() {
   const { sesion } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading, error } = useQuery({ queryKey: ["dashboard"], queryFn: riesgoApi.dashboard });
+  const resumen = useQuery({ queryKey: ["dashboard"], queryFn: riesgoApi.dashboard });
   const estudiantes = useQuery({ queryKey: ["estudiantes", undefined], queryFn: () => estudiantesApi.listar() });
-  const proximos = useQuery({ queryKey: ["calendario", "proximos"], queryFn: () => calendarioApi.listar(true) });
-  const [descargando, setDescargando] = useState<number | null>(null);
+  const calendario = useQuery({ queryKey: ["calendario", "proximos"], queryFn: () => calendarioApi.listar(true) });
   const puedePdf = sesion?.rol === "director" || sesion?.rol === "tutor";
+  const puedeCalcular = sesion?.rol === "director" || sesion?.rol === "tutor" || sesion?.rol === "analista";
 
-  if (isLoading) return <Cargando filas={3} />;
-  if (error || !data) return <ErrorApi error={error} />;
+  if (resumen.isLoading || estudiantes.isLoading) return <Cargando filas={3} />;
+  if (resumen.error || !resumen.data) return <ErrorApi error={resumen.error} />;
 
-  const pct = (n: number) => (data.total_estudiantes ? `${Math.round((n / data.total_estudiantes) * 100)}% del total` : "");
-  const dona = (["rojo", "amarillo", "verde"] as const)
-    .map((r) => ({ nombre: SEMAFORO[r].corto, valor: data[r], color: SEMAFORO[r].color }))
-    .concat(data.sin_calcular ? [{ nombre: "Sin calcular", valor: data.sin_calcular, color: "#cbd5e1" }] : []);
-  const prioridad = (estudiantes.data ?? [])
-    .filter((e) => e.riesgo === "rojo")
-    .sort((a, b) => (b.probabilidad ?? 0) - (a.probabilidad ?? 0))
-    .slice(0, 6);
-  const aulaNombre = (id: number) => data.aulas.find((a) => a.aula_id === id)?.aula ?? "";
+  const d = resumen.data;
+  const lista = estudiantes.data ?? [];
+  const eventos = calendario.data ?? [];
+  const proxima = [...eventos].sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
+  const prioridad = lista.filter((e) => e.riesgo === "rojo").sort((a, b) => (b.probabilidad ?? 0) - (a.probabilidad ?? 0));
+  const nombreAula = (id: number) => d.aulas.find((a) => a.aula_id === id)?.aula ?? "";
 
   const pdf = async (aulaId: number, nombre: string) => {
-    setDescargando(aulaId);
     try {
       await riesgoApi.descargarPdf(aulaId, nombre);
     } catch (e) {
       alert(mensajeError(e));
-    } finally {
-      setDescargando(null);
     }
   };
 
+  const titular = d.rojo === 0
+    ? "Ningún estudiante está en riesgo alto."
+    : `${d.rojo} de ${d.total_estudiantes} estudiantes están en riesgo alto.`;
+  const bajada = [
+    d.amarillo > 0 ? `${d.amarillo} más están en riesgo moderado.` : "",
+    proxima ? `La próxima evaluación es el ${fechaLarga(proxima.fecha)}: es buen momento para hablar con sus familias.` : "",
+    d.sin_calcular > 0 ? `Falta calcular el riesgo de ${d.sin_calcular} estudiantes.` : "",
+  ].filter(Boolean).join(" ");
+
   return (
     <Stack spacing={3}>
-      {/* Encabezado */}
-      <Card sx={{ background: MARCA.degradado, color: "#fff", border: 0, position: "relative", overflow: "hidden" }}>
-        <Box sx={{ position: "absolute", right: -60, top: -60, width: 220, height: 220, borderRadius: "50%", bgcolor: "rgba(255,255,255,.08)" }} />
-        <CardContent sx={{ p: { xs: 2.5, md: 3.5 }, position: "relative" }}>
-          <Typography sx={{ color: "#c7d2fe", fontWeight: 600 }}>{saludo()}, {sesion?.nombre}</Typography>
-          <Typography variant="h5" sx={{ mt: 0.5, fontSize: { xs: 22, md: 28 } }}>
-            {data.rojo > 0
-              ? `${data.rojo} estudiante${data.rojo === 1 ? "" : "s"} necesita${data.rojo === 1 ? "" : "n"} atención prioritaria`
-              : "No hay estudiantes en riesgo alto 🎉"}
+      {/* Titular */}
+      <Box component="header" sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-end", justifyContent: "space-between" }}>
+        <Box sx={{ maxWidth: 820 }}>
+          <Typography fontSize={14.5} color="text.secondary" sx={{ mb: 0.5 }}>
+            {sesion?.rol === "tutor" ? "Tu aula" : "Panorama del colegio"}, bimestre 1
           </Typography>
-          <Typography sx={{ color: "#e0e7ff", mt: 1, maxWidth: 640 }}>
-            Revisa el semáforo por aula y comparte las pautas con las familias antes de las evaluaciones.
-          </Typography>
-          {data.rojo > 0 && (
-            <Button variant="contained" endIcon={<ArrowForwardIcon />} onClick={() => navigate("/estudiantes")}
-              sx={{ mt: 2.5, bgcolor: "#fff", color: MARCA.oscuro, "&:hover": { bgcolor: "#e0e7ff" } }}>
-              Ver estudiantes en riesgo
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* KPIs */}
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 6, lg: 3 }}><KpiCard titulo="Estudiantes" valor={data.total_estudiantes} icono={<GroupsIcon />} detalle={`${data.aulas.length} aulas`} /></Grid>
-        <Grid size={{ xs: 6, lg: 3 }}><KpiCard titulo="Riesgo alto" valor={data.rojo} color={SEMAFORO.rojo.color} icono={<ErrorIcon />} detalle={pct(data.rojo)} /></Grid>
-        <Grid size={{ xs: 6, lg: 3 }}><KpiCard titulo="Riesgo moderado" valor={data.amarillo} color={SEMAFORO.amarillo.color} icono={<WarningIcon />} detalle={pct(data.amarillo)} /></Grid>
-        <Grid size={{ xs: 6, lg: 3 }}><KpiCard titulo="Riesgo bajo" valor={data.verde} color={SEMAFORO.verde.color} icono={<CheckCircleIcon />} detalle={pct(data.verde)} /></Grid>
-      </Grid>
-
-      <Grid container spacing={2}>
-        {/* Distribución */}
-        <Grid size={{ xs: 12, md: 5, lg: 4 }}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6">Distribución del riesgo</Typography>
-              <Typography variant="body2" color="text.secondary">Último cálculo del modelo</Typography>
-              <Box sx={{ height: 220, position: "relative" }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={dona} dataKey="valor" nameKey="nombre" innerRadius={62} outerRadius={92} paddingAngle={2} stroke="none">
-                      {dona.map((d) => <Cell key={d.nombre} fill={d.color} />)}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}>
-                  <Box sx={{ textAlign: "center" }}>
-                    <Typography variant="h4">{data.total_estudiantes}</Typography>
-                    <Typography variant="caption" color="text.secondary">estudiantes</Typography>
-                  </Box>
-                </Box>
-              </Box>
-              <Stack direction="row" justifyContent="center" spacing={2} flexWrap="wrap" useFlexGap>
-                {dona.map((d) => (
-                  <Stack key={d.nombre} direction="row" spacing={0.75} alignItems="center">
-                    <Box sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: d.color }} />
-                    <Typography variant="body2">{d.nombre} <b>{d.valor}</b></Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Por aula */}
-        <Grid size={{ xs: 12, md: 7, lg: 8 }}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6">Riesgo por aula</Typography>
-              <Typography variant="body2" color="text.secondary">Número de estudiantes en cada nivel</Typography>
-              <Box sx={{ height: 260, mt: 1 }}>
-                <ResponsiveContainer>
-                  <BarChart data={data.aulas} layout="vertical" margin={{ left: 8, right: 16 }} barSize={22}>
-                    <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} />
-                    <YAxis type="category" dataKey="aula" axisLine={false} tickLine={false} width={48} />
-                    <Tooltip cursor={{ fill: "#f1f5f9" }} />
-                    <Bar dataKey="rojo" name="Alto" stackId="r" fill={SEMAFORO.rojo.color} radius={[6, 0, 0, 6]} />
-                    <Bar dataKey="amarillo" name="Moderado" stackId="r" fill={SEMAFORO.amarillo.color} />
-                    <Bar dataKey="verde" name="Bajo" stackId="r" fill={SEMAFORO.verde.color} />
-                    <Bar dataKey="sin_calcular" name="Sin calcular" stackId="r" fill="#cbd5e1" radius={[0, 6, 6, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Prioridad */}
-        <Grid size={{ xs: 12, lg: 7 }}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent sx={{ pb: 1 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Box>
-                  <Typography variant="h6">Atención prioritaria</Typography>
-                  <Typography variant="body2" color="text.secondary">Mayor probabilidad de riesgo</Typography>
-                </Box>
-                <Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate("/estudiantes")}>Ver todos</Button>
-              </Stack>
-            </CardContent>
-            {prioridad.length ? (
-              <List dense sx={{ px: 1, pb: 1 }}>
-                {prioridad.map((e) => (
-                  <ListItemButton key={e.id} onClick={() => navigate(`/estudiantes/${e.id}`)} sx={{ borderRadius: 2 }}>
-                    <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: SEMAFORO.rojo.fondo, color: SEMAFORO.rojo.color, fontWeight: 700, fontSize: 14 }}>
-                        {iniciales(`${e.nombres} ${e.apellidos}`)}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText primary={`${e.apellidos}, ${e.nombres}`} secondary={`${e.codigo} · Aula ${aulaNombre(e.aula_id)}`}
-                      primaryTypographyProps={{ fontWeight: 600 }} />
-                    <SemaforoChip riesgo={e.riesgo} probabilidad={e.probabilidad} corto />
-                  </ListItemButton>
-                ))}
-              </List>
-            ) : (
-              <Vacio icono={<CheckCircleIcon />} titulo="Sin estudiantes en riesgo alto" />
-            )}
-          </Card>
-        </Grid>
-
-        {/* Evaluaciones */}
-        <Grid size={{ xs: 12, lg: 5 }}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
-              <Typography variant="h6">Evaluaciones próximas</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Próximos 8 días</Typography>
-              {proximos.data?.length ? (
-                <Stack spacing={1.5}>
-                  {proximos.data.slice(0, 6).map((e) => {
-                    const fecha = new Date(`${e.fecha}T00:00:00`);
-                    const urgente = (e.dias_restantes ?? 9) <= 3;
-                    return (
-                      <Stack key={e.id} direction="row" spacing={1.5} alignItems="center">
-                        <Box sx={{ width: 46, height: 46, borderRadius: 2.5, flexShrink: 0, textAlign: "center", pt: 0.5,
-                          bgcolor: urgente ? SEMAFORO.rojo.fondo : "#eef2ff", color: urgente ? SEMAFORO.rojo.color : "primary.main" }}>
-                          <Typography fontSize={17} fontWeight={800} lineHeight={1.1}>{fecha.getDate()}</Typography>
-                          <Typography fontSize={10} fontWeight={700} textTransform="uppercase">
-                            {fecha.toLocaleDateString("es-PE", { month: "short" }).replace(".", "")}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography fontSize={14} fontWeight={600} noWrap>{e.titulo}</Typography>
-                          <Typography fontSize={12} color={urgente ? "error" : "text.secondary"}>
-                            {e.dias_restantes === 0 ? "Hoy" : `En ${e.dias_restantes} día${e.dias_restantes === 1 ? "" : "s"}`}
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    );
-                  })}
-                </Stack>
-              ) : (
-                <Vacio icono={<EventIcon />} titulo="Sin evaluaciones próximas" />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Aulas */}
-      <Box>
-        <Typography variant="h6" sx={{ mb: 1.5 }}>Aulas</Typography>
-        <Grid container spacing={2}>
-          {data.aulas.map((a) => (
-            <Grid key={a.aula_id} size={{ xs: 12, sm: 6, lg: 4 }}>
-              <Card>
-                <CardContent>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                    <Typography variant="h6">{a.aula}</Typography>
-                    <Typography variant="body2" color="text.secondary">{a.total} estudiantes</Typography>
-                  </Stack>
-                  <Box sx={{ display: "flex", height: 10, borderRadius: 99, overflow: "hidden", bgcolor: "#f1f5f9", mb: 1.5 }}>
-                    {(["rojo", "amarillo", "verde"] as const).map((r) => (
-                      <Box key={r} sx={{ width: `${a.total ? (a[r] / a.total) * 100 : 0}%`, bgcolor: SEMAFORO[r].color }} />
-                    ))}
-                  </Box>
-                  <Stack direction="row" spacing={2}>
-                    {(["rojo", "amarillo", "verde"] as const).map((r) => (
-                      <Typography key={r} variant="body2" sx={{ color: SEMAFORO[r].color, fontWeight: 700 }}>
-                        ● {a[r]} <Box component="span" sx={{ color: "text.secondary", fontWeight: 500 }}>{SEMAFORO[r].corto.toLowerCase()}</Box>
-                      </Typography>
-                    ))}
-                  </Stack>
-                  <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
-                    <Button size="small" variant="outlined" onClick={() => navigate(`/estudiantes?aula=${a.aula_id}`)}>Ver estudiantes</Button>
-                    {puedePdf && (
-                      <Button size="small" startIcon={<PictureAsPdfIcon />} disabled={descargando === a.aula_id}
-                        onClick={() => pdf(a.aula_id, a.aula)}>
-                        Reporte PDF
-                      </Button>
-                    )}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+          <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 30, md: 42 }, textWrap: "balance" }}>{titular}</Typography>
+          {bajada && <Typography sx={{ mt: 1.25, fontSize: 16.5, color: MARCA.grafito, maxWidth: "62ch", lineHeight: 1.5 }}>{bajada}</Typography>}
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button variant="outlined" onClick={() => navigate("/estudiantes")}>Ver estudiantes</Button>
+          {puedeCalcular && <Button variant="contained" onClick={() => navigate("/prediccion")}>Calcular riesgo</Button>}
+        </Stack>
       </Box>
+
+      <Box sx={{ bgcolor: MARCA.papel, border: `1px solid ${MARCA.linea}`, borderRadius: 3, p: { xs: 2, md: 2.5 } }}>
+        <FranjaSemaforo verde={d.verde} amarillo={d.amarillo} rojo={d.rojo} sinCalcular={d.sin_calcular} />
+      </Box>
+
+      {/* Mapas + prioridad */}
+      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 2.2fr) minmax(300px, 1fr)" }, alignItems: "start" }}>
+        <Box>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", gap: 1, mb: 1.5 }}>
+            <Typography variant="h6" component="h2">Mapa de aulas</Typography>
+            <Typography fontSize={13.5} color="text.secondary">Cada carpeta es un estudiante. Tócala para ver su ficha.</Typography>
+          </Box>
+          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 228px), 1fr))" }}>
+            {d.aulas.map((a, i) => (
+              <MapaAula key={a.aula_id} nombre={a.aula} retraso={i * 120}
+                estudiantes={lista.filter((e) => e.aula_id === a.aula_id)}
+                onSeleccionar={(id) => navigate(`/estudiantes/${id}`)}
+                onPdf={puedePdf ? () => pdf(a.aula_id, a.aula) : undefined} />
+            ))}
+          </Box>
+        </Box>
+
+        <Panel titulo="Atención prioritaria" detalle="Riesgo alto, de mayor a menor probabilidad"
+          accion={prioridad.length > 6 ? <Button size="small" sx={{ whiteSpace: "nowrap", flexShrink: 0 }} onClick={() => navigate("/estudiantes?riesgo=rojo")}>Ver los {prioridad.length}</Button> : undefined}>
+          {prioridad.length ? (
+            <List disablePadding sx={{ mx: -1 }}>
+              {prioridad.slice(0, 7).map((e) => (
+                <FilaPrioridad key={e.id} e={e} aula={nombreAula(e.aula_id)} onClick={() => navigate(`/estudiantes/${e.id}`)} />
+              ))}
+            </List>
+          ) : (
+            <Typography color="text.secondary">Nadie está en riesgo alto. Revisa a los estudiantes en riesgo moderado para mantenerlo así.</Typography>
+          )}
+        </Panel>
+      </Box>
+
+      <Panel titulo="Próximos 8 días" detalle="Evaluaciones programadas: avisa a las familias para organizar el repaso en casa">
+        <SemanaEvaluaciones eventos={eventos} />
+      </Panel>
     </Stack>
   );
 }

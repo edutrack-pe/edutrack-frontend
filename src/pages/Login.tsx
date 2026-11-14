@@ -57,15 +57,15 @@ export default function Login() {
     <Box sx={{ minHeight: "100vh", display: "grid", gridTemplateColumns: { xs: "1fr", md: "1.1fr 1fr" } }}>
       {/* Panel de marca */}
       <Box sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", justifyContent: "space-between", p: 6,
-                 background: MARCA.degradado, color: "#fff", position: "relative", overflow: "hidden" }}>
+                 background: MARCA.pizarra, color: "#fff", position: "relative", overflow: "hidden" }}>
         <Box sx={{ position: "absolute", right: -120, top: -120, width: 420, height: 420, borderRadius: "50%", bgcolor: "rgba(255,255,255,.06)" }} />
         <Box sx={{ position: "absolute", left: -80, bottom: -140, width: 360, height: 360, borderRadius: "50%", bgcolor: "rgba(255,255,255,.05)" }} />
         <Logo claro tamano={1.15} />
         <Box sx={{ position: "relative", maxWidth: 520 }}>
           <Typography variant="h4" sx={{ fontSize: 40, lineHeight: 1.15, mb: 2 }}>
-            Detecta el riesgo académico <Box component="span" sx={{ color: "#5eead4" }}>antes</Box> de que sea tarde.
+            Detecta el riesgo académico antes de que sea tarde.
           </Typography>
-          <Typography sx={{ color: "#c7d2fe", mb: 4, fontSize: 17 }}>
+          <Typography sx={{ color: "#cfdcd5", mb: 4, fontSize: 17 }}>
             Alerta temprana de desaprobación y deserción escolar para colegios de la UGEL 03.
           </Typography>
           <Stack spacing={2.5}>
@@ -76,13 +76,13 @@ export default function Login() {
                 </Box>
                 <Box>
                   <Typography fontWeight={700}>{b.titulo}</Typography>
-                  <Typography fontSize={14} color="#c7d2fe">{b.texto}</Typography>
+                  <Typography fontSize={14} color="#cfdcd5">{b.texto}</Typography>
                 </Box>
               </Box>
             ))}
           </Stack>
         </Box>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ color: "#a5b4fc", fontSize: 13 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ color: "#9fb6ad", fontSize: 13 }}>
           <LockIcon fontSize="small" />
           <span>Datos protegidos según la Ley N° 29733</span>
         </Stack>

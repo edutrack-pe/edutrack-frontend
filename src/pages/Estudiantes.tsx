@@ -18,7 +18,10 @@ export default function Estudiantes() {
   const movil = useMediaQuery(theme.breakpoints.down("sm"));
   const [params, setParams] = useSearchParams();
   const aula = params.get("aula") ? Number(params.get("aula")) : undefined;
-  const [riesgo, setRiesgo] = useState<Riesgo | "todos">("todos");
+  const riesgoInicial = params.get("riesgo");
+  const [riesgo, setRiesgo] = useState<Riesgo | "todos">(
+    riesgoInicial === "rojo" || riesgoInicial === "amarillo" || riesgoInicial === "verde" ? riesgoInicial : "todos",
+  );
   const [buscar, setBuscar] = useState("");
 
   const aulas = useQuery({ queryKey: ["aulas"], queryFn: aulasApi.listar });
@@ -85,7 +88,7 @@ export default function Estudiantes() {
                     <TableCell>
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <Avatar sx={{ width: 32, height: 32, fontSize: 13, fontWeight: 700,
-                          bgcolor: e.riesgo ? SEMAFORO[e.riesgo].fondo : "#eef2ff", color: e.riesgo ? SEMAFORO[e.riesgo].color : "primary.main" }}>
+                          bgcolor: e.riesgo ? SEMAFORO[e.riesgo].fondo : "#e9efec", color: e.riesgo ? SEMAFORO[e.riesgo].texto : "primary.main" }}>
                           {iniciales(`${e.nombres} ${e.apellidos}`)}
                         </Avatar>
                         <span style={{ fontWeight: 600 }}>{e.apellidos}, {e.nombres}</span>

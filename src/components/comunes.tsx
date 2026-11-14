@@ -19,7 +19,7 @@ export function SemaforoChip({ riesgo, probabilidad, corto = false }: {
   const s = SEMAFORO[riesgo];
   return (
     <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, px: 1.25, py: 0.4, borderRadius: 99,
-      bgcolor: s.fondo, color: s.color, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
+      bgcolor: s.fondo, color: s.texto, fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>
       <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: s.color, boxShadow: `0 0 0 3px ${s.color}33` }} />
       {corto ? s.corto : s.etiqueta}
       {probabilidad != null && <Box component="span" sx={{ opacity: 0.75, fontWeight: 600 }}>· {Math.round(probabilidad * 100)}%</Box>}
@@ -27,7 +27,7 @@ export function SemaforoChip({ riesgo, probabilidad, corto = false }: {
   );
 }
 
-export function KpiCard({ titulo, valor, color = "#4f46e5", icono, detalle }: {
+export function KpiCard({ titulo, valor, color = "#1d3a33", icono, detalle }: {
   titulo: string; valor: number | string; color?: string; icono?: ReactNode; detalle?: string;
 }) {
   return (
@@ -102,7 +102,7 @@ export function Titulo({ children, subtitulo, accion }: { children: ReactNode; s
 export function Vacio({ icono, titulo, texto }: { icono: ReactNode; titulo: string; texto?: string }) {
   return (
     <Box sx={{ textAlign: "center", py: 6, px: 2, color: "text.secondary" }}>
-      <Box sx={{ fontSize: 48, mb: 1, "& svg": { fontSize: 48 }, color: "#c7d2fe" }}>{icono}</Box>
+      <Box sx={{ fontSize: 48, mb: 1, "& svg": { fontSize: 48 }, color: "#c9d1cd" }}>{icono}</Box>
       <Typography variant="h6" color="text.primary">{titulo}</Typography>
       {texto && <Typography variant="body2" sx={{ mt: 0.5 }}>{texto}</Typography>}
     </Box>
