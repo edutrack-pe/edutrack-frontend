@@ -7,14 +7,14 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { Box, ButtonBase, IconButton, Tooltip, Typography } from "@mui/material";
 import { keyframes } from "@mui/system";
 import type { Estudiante, Riesgo } from "../api/types";
-import { FUENTE_TITULO, MARCA, SEMAFORO } from "../theme";
+import { FUENTE_TITULO, MARCA, MOVIMIENTO, RADIO, SEMAFORO, SOMBRA } from "../theme";
 
-const aparecer = keyframes`from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; }`;
+const aparecer = keyframes`from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; }`;
 
 const ORDEN: (Riesgo | null)[] = ["rojo", "amarillo", "verde", null];
 
 function estiloCarpeta(r: Riesgo | null) {
-  if (r === "rojo") return { bgcolor: SEMAFORO.rojo.color, color: "#fff", border: `1px solid ${SEMAFORO.rojo.color}` };
+  if (r === "rojo") return { bgcolor: SEMAFORO.rojo.color, color: MARCA.blanco, border: `1px solid ${SEMAFORO.rojo.color}` };
   if (r === "amarillo") return { bgcolor: SEMAFORO.amarillo.color, color: MARCA.tinta, border: `1px solid ${SEMAFORO.amarillo.color}` };
   if (r === "verde") return { bgcolor: SEMAFORO.verde.fondo, color: SEMAFORO.verde.texto, border: `1.5px solid ${SEMAFORO.verde.color}` };
   return { bgcolor: "transparent", color: MARCA.grafito, border: `1.5px dashed ${MARCA.sinCalcular}` };
@@ -31,18 +31,18 @@ export function MapaAula({ nombre, estudiantes, onSeleccionar, onPdf, retraso = 
 
   return (
     <Box component="section" aria-label={`Aula ${nombre}`}
-      sx={{ bgcolor: MARCA.papel, border: `1px solid ${MARCA.linea}`, borderRadius: 3, p: 2, display: "flex", flexDirection: "column", gap: 1.75 }}>
+      sx={{ bgcolor: MARCA.papel, border: `1px solid ${MARCA.linea}`, borderRadius: RADIO.xl, boxShadow: SOMBRA.sm, p: 2, display: "flex", flexDirection: "column", gap: 1.75 }}>
       {/* Pizarra */}
-      <Box sx={{ bgcolor: MARCA.pizarra, color: MARCA.tizaTexto, borderRadius: 1.5, px: 1.75, py: 1,
+      <Box sx={{ bgcolor: MARCA.pizarra, color: MARCA.tizaTexto, borderRadius: RADIO.md, px: 1.75, py: 1,
                  display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: `inset 0 -4px 0 ${MARCA.pizarraClara}` }}>
-        <Typography sx={{ fontFamily: FUENTE_TITULO, fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em", color: "#fff" }}>
+        <Typography sx={{ fontFamily: FUENTE_TITULO, fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em", color: MARCA.blanco }}>
           {nombre}
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <Typography fontSize={13} color={MARCA.tizaApagada}>{estudiantes.length} estudiantes</Typography>
           {onPdf && (
             <Tooltip title={`Descargar reporte PDF de ${nombre}`}>
-              <IconButton size="small" onClick={onPdf} sx={{ color: MARCA.tizaTexto }} aria-label={`Reporte PDF de ${nombre}`}>
+              <IconButton size="small" onClick={onPdf} sx={{ color: MARCA.tizaTexto, "&:hover": { bgcolor: MARCA.pizarraClara } }} aria-label={`Reporte PDF de ${nombre}`}>
                 <PictureAsPdfIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -66,10 +66,10 @@ export function MapaAula({ nombre, estudiantes, onSeleccionar, onPdf, retraso = 
               <ButtonBase role="listitem" onClick={() => onSeleccionar(e.id)}
                 aria-label={`${e.nombres} ${e.apellidos}: ${etiqueta}${prob}`}
                 sx={{
-                  ...estiloCarpeta(r), aspectRatio: "1.25", borderRadius: 1, fontSize: 12, fontWeight: 700,
-                  animation: `${aparecer} .35s ease-out both`, animationDelay: `${retraso + i * 14}ms`,
-                  "&:hover": { transform: "translateY(-2px)", boxShadow: "0 3px 0 rgba(0,0,0,.18)" },
-                  transition: "transform .12s, box-shadow .12s",
+                  ...estiloCarpeta(r), aspectRatio: { xs: "1", sm: "1.2" }, minHeight: { xs: 44, sm: 0 }, borderRadius: RADIO.xs, fontSize: 13, fontWeight: 800,
+                  animation: `${aparecer} .28s ${MOVIMIENTO.curva} both`, animationDelay: `${retraso + i * 10}ms`,
+                  "&:hover": { transform: "translateY(-2px)", boxShadow: SOMBRA.sm },
+                  transition: `transform ${MOVIMIENTO.rapido}, box-shadow ${MOVIMIENTO.rapido}`,
                 }}>
                 {r === "rojo" ? "!" : ""}
               </ButtonBase>
@@ -82,7 +82,7 @@ export function MapaAula({ nombre, estudiantes, onSeleccionar, onPdf, retraso = 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mt: "auto" }}>
         {ORDEN.filter((r) => conteo(r) > 0).map((r) => (
           <Box key={r ?? "sin"} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <Box sx={{ width: 11, height: 9, borderRadius: 0.5, ...estiloCarpeta(r) }} />
+            <Box aria-hidden sx={{ width: 11, height: 9, borderRadius: "2px", ...estiloCarpeta(r) }} />
             <Typography fontSize={13} color="text.secondary">
               <Box component="b" sx={{ color: r ? SEMAFORO[r].texto : MARCA.grafito }}>{conteo(r)}</Box>{" "}
               {r ? SEMAFORO[r].corto.toLowerCase() : "sin calcular"}

@@ -1,54 +1,50 @@
-import AssessmentIcon from "@mui/icons-material/AssessmentOutlined";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonthOutlined";
-import DashboardIcon from "@mui/icons-material/SpaceDashboardOutlined";
-import DescriptionIcon from "@mui/icons-material/DescriptionOutlined";
-import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroomOutlined";
+import ChevronRightIcon from "@mui/icons-material/ChevronRightRounded";
 import LogoutIcon from "@mui/icons-material/LogoutRounded";
 import MenuIcon from "@mui/icons-material/MenuRounded";
 import NotificationsIcon from "@mui/icons-material/NotificationsNoneRounded";
-import PeopleIcon from "@mui/icons-material/PeopleAltOutlined";
-import QuizIcon from "@mui/icons-material/QuizOutlined";
-import TuneIcon from "@mui/icons-material/TuneRounded";
-import UploadFileIcon from "@mui/icons-material/UploadFileOutlined";
 import {
-  AppBar, Avatar, Badge, Box, Chip, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText,
-  Toolbar, Tooltip, Typography, useMediaQuery, useTheme,
+  AppBar, Avatar, Badge, BottomNavigation, BottomNavigationAction, Box, ButtonBase, Drawer, IconButton, List,
+  ListItemButton, ListItemIcon, ListItemText, Paper, Toolbar, Tooltip, Typography, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { USE_MOCKS } from "../api/client";
 import { alertasApi } from "../api/endpoints";
-import type { Rol } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { FUENTE_TITULO, iniciales, MARCA } from "../theme";
-import { Logo } from "./Logo";
+import { ESPACIO, FUENTE_TITULO, iniciales, MARCA, MOVIMIENTO, RADIO, SEMAFORO, SOMBRA, TACTIL } from "../theme";
+import { Isotipo, Logo } from "./Logo";
+import { GRUPOS, MENU, NOMBRE_ROL, type ItemMenu } from "./menu";
 
-interface ItemMenu {
-  ruta: string;
-  texto: string;
-  icono: ReactNode;
-  roles: Rol[];
+
+const ANCHO = 268;
+
+function ItemNav({ m, pendientes, onClick }: { m: ItemMenu; pendientes: number; onClick: () => void }) {
+  return (
+    <ListItemButton component={NavLink} to={m.ruta} onClick={onClick}
+      sx={{
+        position: "relative", borderRadius: RADIO.md, mb: 0.25, py: 0.75, px: 1.5, color: MARCA.grafito,
+        transition: `background-color ${MOVIMIENTO.base}, color ${MOVIMIENTO.base}`,
+        "& .MuiListItemIcon-root": { color: MARCA.grafitoSuave, minWidth: 36 },
+        "&:hover": { bgcolor: MARCA.fondo, color: MARCA.tinta },
+        "&.active": {
+          bgcolor: MARCA.pizarraTenue, color: MARCA.pizarra,
+          "& .MuiListItemIcon-root": { color: MARCA.pizarra },
+          "&::before": { content: '""', position: "absolute", left: -12, top: 10, bottom: 10, width: 4, borderRadius: RADIO.pill, bgcolor: MARCA.pizarra },
+        },
+      }}>
+      <ListItemIcon>{m.icono}</ListItemIcon>
+      <ListItemText primary={m.texto} primaryTypographyProps={{ fontSize: 14.5, fontWeight: 700 }} />
+      {m.ruta === "/alertas" && pendientes > 0 && (
+        <Box component="span" aria-label={`${pendientes} sin leer`}
+          sx={{ minWidth: 22, height: 22, px: 0.75, borderRadius: RADIO.pill, bgcolor: SEMAFORO.rojo.color, color: MARCA.blanco,
+                fontSize: 12, fontWeight: 700, display: "grid", placeItems: "center" }}>
+          {pendientes}
+        </Box>
+      )}
+    </ListItemButton>
+  );
 }
-
-export const MENU: ItemMenu[] = [
-  { ruta: "/dashboard", texto: "Panorama", icono: <DashboardIcon />, roles: ["director", "tutor", "analista", "docente"] },
-  { ruta: "/portal", texto: "Mi hijo(a)", icono: <FamilyRestroomIcon />, roles: ["padre"] },
-  { ruta: "/estudiantes", texto: "Estudiantes", icono: <PeopleIcon />, roles: ["director", "docente", "tutor", "analista"] },
-  { ruta: "/alertas", texto: "Alertas", icono: <NotificationsIcon />, roles: ["tutor", "director"] },
-  { ruta: "/actas", texto: "Actas de tutoría", icono: <DescriptionIcon />, roles: ["tutor"] },
-  { ruta: "/carga", texto: "Cargar notas", icono: <UploadFileIcon />, roles: ["docente", "analista", "director"] },
-  { ruta: "/prediccion", texto: "Calcular riesgo", icono: <AssessmentIcon />, roles: ["analista", "director", "tutor"] },
-  { ruta: "/encuesta", texto: "Encuesta familiar", icono: <QuizIcon />, roles: ["padre"] },
-  { ruta: "/calendario", texto: "Calendario", icono: <CalendarMonthIcon />, roles: ["director", "docente", "tutor", "padre", "analista"] },
-  { ruta: "/configuracion", texto: "Umbrales de riesgo", icono: <TuneIcon />, roles: ["analista"] },
-];
-
-const NOMBRE_ROL: Record<Rol, string> = {
-  director: "Dirección", docente: "Docente", tutor: "Tutor(a)", padre: "Apoderado(a)", analista: "Analista",
-};
-
-const ANCHO = 248;
 
 export function Layout() {
   const { sesion, logout } = useAuth();
@@ -64,81 +60,110 @@ export function Layout() {
 
   const items = MENU.filter((m) => sesion && m.roles.includes(sesion.rol));
   const actual = MENU.find((m) => location.pathname.startsWith(m.ruta));
+  const principales = items.slice(0, 3);
+  const enBarra = principales.find((m) => location.pathname.startsWith(m.ruta))?.ruta ?? "mas";
+  const salir = () => { logout(); navigate("/login"); };
+  const cerrar = () => setAbierto(false);
 
   const menu = (
-    <Box component="nav" aria-label="Menú principal"
-      sx={{ display: "flex", flexDirection: "column", height: "100%", bgcolor: MARCA.pizarra, color: MARCA.tizaTexto }}>
-      <Box sx={{ px: 2.5, pt: 3, pb: 3 }}><Logo claro /></Box>
-      <List sx={{ flex: 1, px: 1.5, pt: 0 }}>
-        {items.map((m) => (
-          <ListItemButton
-            key={m.ruta}
-            component={NavLink}
-            to={m.ruta}
-            onClick={() => setAbierto(false)}
-            sx={{
-              borderRadius: 2, mb: 0.25, color: MARCA.tizaTexto, py: 0.9,
-              "& .MuiListItemIcon-root": { color: MARCA.tizaApagada, minWidth: 36 },
-              "&:hover": { bgcolor: "rgba(255,255,255,.06)" },
-              "&.active": { bgcolor: "#fff", color: MARCA.pizarra, "& .MuiListItemIcon-root": { color: MARCA.pizarra } },
-            }}
-          >
-            <ListItemIcon>
-              {m.ruta === "/alertas" ? <Badge color="error" badgeContent={pendientes} max={99}>{m.icono}</Badge> : m.icono}
-            </ListItemIcon>
-            <ListItemText primary={m.texto} primaryTypographyProps={{ fontSize: 14.5, fontWeight: 700 }} />
-          </ListItemButton>
-        ))}
-      </List>
-      <Box sx={{ mx: 1.5, mb: 1.5, px: 1.5, py: 1.25, borderTop: "1px solid rgba(255,255,255,.12)", display: "flex", alignItems: "center", gap: 1.25 }}>
-        <Avatar sx={{ bgcolor: MARCA.tizaTexto, color: MARCA.pizarra, fontWeight: 700, width: 34, height: 34, fontSize: 14 }}>
+    <Box component="nav" aria-label="Menú principal" sx={{ display: "flex", flexDirection: "column", height: "100%", px: 1.5, pt: 3, pb: 1.5 }}>
+      <Box sx={{ px: 1.5, mb: 3 }}>
+        <Logo />
+        <Typography variant="auxiliar" sx={{ mt: 0.75 }}>Alerta temprana · UGEL 03</Typography>
+      </Box>
+
+      <Box sx={{ flex: 1, overflowY: "auto", mx: -0.5, px: 0.5 }}>
+        {GRUPOS.map((g) => {
+          const delGrupo = items.filter((m) => m.grupo === g.clave);
+          if (!delGrupo.length) return null;
+          return (
+            <Box key={g.clave} sx={{ mb: 2 }}>
+              <Typography variant="overline" component="p" sx={{ px: 1.5, color: MARCA.grafitoSuave }}>{g.titulo}</Typography>
+              <List disablePadding>
+                {delGrupo.map((m) => <ItemNav key={m.ruta} m={m} pendientes={pendientes} onClick={cerrar} />)}
+              </List>
+            </Box>
+          );
+        })}
+      </Box>
+
+      {veAlertas && pendientes > 0 && (
+        <ButtonBase onClick={() => { cerrar(); navigate("/alertas"); }}
+          sx={{ display: "flex", alignItems: "center", gap: 1.25, textAlign: "left", mb: 1.5, p: 1.5, borderRadius: RADIO.md,
+                bgcolor: SEMAFORO.rojo.fondo, color: SEMAFORO.rojo.texto, border: `1px solid ${SEMAFORO.rojo.borde}`,
+                transition: `box-shadow ${MOVIMIENTO.base}`, "&:hover": { boxShadow: SOMBRA.sm } }}>
+          <Box aria-hidden sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: SEMAFORO.rojo.color, flexShrink: 0 }} />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography fontSize={14} fontWeight={700}>{pendientes} {pendientes === 1 ? "alerta sin leer" : "alertas sin leer"}</Typography>
+            <Typography fontSize={12.5}>Inicia el protocolo de tutoría</Typography>
+          </Box>
+          <ChevronRightIcon fontSize="small" />
+        </ButtonBase>
+      )}
+
+      <Box sx={{ pt: 1.5, borderTop: `1px solid ${MARCA.linea}`, display: "flex", alignItems: "center", gap: 1.25, px: 0.5 }}>
+        <Avatar sx={{ bgcolor: MARCA.pizarra, color: MARCA.blanco, fontWeight: 700, width: 38, height: 38, fontSize: 14 }}>
           {iniciales(sesion?.nombre ?? "")}
         </Avatar>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography fontSize={14} fontWeight={700} color="#fff" noWrap>{sesion?.nombre}</Typography>
-          <Typography fontSize={12.5} color={MARCA.tizaApagada}>{sesion ? NOMBRE_ROL[sesion.rol] : ""}</Typography>
+          <Typography fontSize={14} fontWeight={700} noWrap>{sesion?.nombre}</Typography>
+          <Typography variant="auxiliar" noWrap>{sesion ? NOMBRE_ROL[sesion.rol] : ""}{USE_MOCKS ? " · demo" : ""}</Typography>
         </Box>
         <Tooltip title="Cerrar sesión">
-          <IconButton size="small" sx={{ color: MARCA.tizaApagada }} onClick={() => { logout(); navigate("/login"); }} aria-label="Cerrar sesión">
-            <LogoutIcon fontSize="small" />
-          </IconButton>
+          <IconButton onClick={salir} aria-label="Cerrar sesión" sx={{ color: MARCA.grafito }}><LogoutIcon fontSize="small" /></IconButton>
         </Tooltip>
       </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ display: "flex", minHeight: "100dvh" }}>
       {movil && (
-        <AppBar position="fixed" elevation={0} sx={{ bgcolor: MARCA.pizarra }}>
-          <Toolbar sx={{ gap: 1 }}>
-            <IconButton edge="start" color="inherit" onClick={() => setAbierto(true)} aria-label="Abrir menú"><MenuIcon /></IconButton>
-            <Typography sx={{ flex: 1, fontFamily: FUENTE_TITULO, fontWeight: 700 }} noWrap>{actual?.texto ?? "EduTrack"}</Typography>
+        <AppBar position="fixed">
+          <Toolbar sx={{ gap: 1, minHeight: { xs: 60 } }}>
+            <Isotipo tamano={0.85} />
+            <Typography sx={{ flex: 1, fontFamily: FUENTE_TITULO, fontWeight: 800, fontSize: 18, letterSpacing: "-0.01em" }} noWrap>
+              {actual?.texto ?? "EduTrack"}
+            </Typography>
             {veAlertas && (
-              <IconButton color="inherit" onClick={() => navigate("/alertas")} aria-label={`Alertas sin leer: ${pendientes}`}>
+              <IconButton onClick={() => navigate("/alertas")} aria-label={`Alertas sin leer: ${pendientes}`}>
                 <Badge color="error" badgeContent={pendientes} max={99}><NotificationsIcon /></Badge>
               </IconButton>
             )}
+            <IconButton onClick={() => setAbierto(true)} aria-label="Abrir menú y perfil" sx={{ p: 0 }}>
+              <Avatar sx={{ bgcolor: MARCA.pizarra, color: MARCA.blanco, width: 34, height: 34, fontSize: 13, fontWeight: 700 }}>
+                {iniciales(sesion?.nombre ?? "")}
+              </Avatar>
+            </IconButton>
           </Toolbar>
         </AppBar>
       )}
-      <Drawer
-        variant={movil ? "temporary" : "permanent"}
-        open={movil ? abierto : true}
-        onClose={() => setAbierto(false)}
-        sx={{ width: ANCHO, flexShrink: 0, "& .MuiDrawer-paper": { width: ANCHO, boxSizing: "border-box", border: 0 } }}
-      >
+
+      <Drawer variant={movil ? "temporary" : "permanent"} open={movil ? abierto : true} onClose={cerrar}
+        anchor={movil ? "right" : "left"} ModalProps={{ keepMounted: true }}
+        sx={{ width: movil ? undefined : ANCHO, flexShrink: 0, "& .MuiDrawer-paper": { width: movil ? "min(86vw, 320px)" : ANCHO, boxSizing: "border-box" } }}>
         {menu}
       </Drawer>
-      <Box component="main" sx={{ flex: 1, minWidth: 0, px: { xs: 2, sm: 3, lg: 5 }, pb: 6, pt: { xs: 10, md: 4 } }}>
-        <Box sx={{ maxWidth: 1320, mx: "auto" }}>
-          {USE_MOCKS && (
-            <Chip size="small" variant="outlined" label="Demo con datos de prueba"
-              sx={{ mb: 2, borderColor: MARCA.linea, color: MARCA.grafito, fontWeight: 700 }} />
-          )}
-          <Outlet />
-        </Box>
+
+      <Box component="main" sx={{ flex: 1, minWidth: 0, px: ESPACIO.pagina, pt: { xs: 10, md: 5 },
+        pb: { xs: "calc(96px + env(safe-area-inset-bottom))", md: 8 } }}>
+        <Box sx={{ maxWidth: 1280, mx: "auto" }}><Outlet /></Box>
       </Box>
+
+      {movil && (
+        <Paper component="nav" aria-label="Accesos principales" square
+          sx={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: (t) => t.zIndex.appBar, borderTop: `1px solid ${MARCA.linea}`,
+                boxShadow: SOMBRA.md, pb: "env(safe-area-inset-bottom)", borderRadius: 0 }}>
+          <BottomNavigation showLabels value={enBarra}>
+            {principales.map((m) => (
+              <BottomNavigationAction key={m.ruta} value={m.ruta} label={m.texto} component={NavLink} to={m.ruta}
+                sx={{ minHeight: TACTIL }}
+                icon={m.ruta === "/alertas" ? <Badge color="error" badgeContent={pendientes} max={99}>{m.icono}</Badge> : m.icono} />
+            ))}
+            <BottomNavigationAction value="mas" label="Más" icon={<MenuIcon />} onClick={() => setAbierto(true)} />
+          </BottomNavigation>
+        </Paper>
+      )}
     </Box>
   );
 }

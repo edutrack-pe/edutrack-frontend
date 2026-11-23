@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { mensajeError } from "../api/client";
 import { alertasApi, aulasApi, ingestaApi, riesgoApi } from "../api/endpoints";
 import { Cargando, ErrorApi, Titulo } from "../components/comunes";
-import { SEMAFORO } from "../theme";
+import { MARCA, SEMAFORO } from "../theme";
 
 export function CargaCSV() {
   const [tipo, setTipo] = useState<"notas" | "asistencias">("notas");
@@ -19,7 +19,7 @@ export function CargaCSV() {
 
   return (
     <>
-      <Titulo subtitulo="Importa notas o asistencias sin digitarlas una por una">Carga masiva CSV / Excel</Titulo>
+      <Titulo antetitulo="Gestión" subtitulo="Importa notas o asistencias sin digitarlas una por una.">Carga masiva CSV / Excel</Titulo>
       <Card sx={{ maxWidth: 640 }}>
         <CardContent>
           <Stack spacing={2}>
@@ -30,11 +30,12 @@ export function CargaCSV() {
             <Alert severity="info">
               Usa la plantilla oficial. <a href={ingestaApi.plantillaUrl(tipo)} download>Descargar plantilla de {tipo}</a>
             </Alert>
-            <Button component="label" variant="outlined" startIcon={<UploadFileIcon />}>
+            <Button component="label" variant="outlined" startIcon={<UploadFileIcon />}
+              sx={{ minHeight: 88, borderStyle: "dashed", borderWidth: 1.5, justifyContent: "center", "&:hover": { borderStyle: "dashed", borderWidth: 1.5 } }}>
               {archivo ? archivo.name : "Seleccionar archivo (.csv, .xlsx)"}
               <input hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
             </Button>
-            <Button variant="contained" disabled={!archivo || subir.isPending} onClick={() => subir.mutate()}>
+            <Button variant="contained" size="large" disabled={!archivo || subir.isPending} onClick={() => subir.mutate()}>
               {subir.isPending ? "Importando…" : "Importar"}
             </Button>
             {subir.isError && <Alert severity="error">{mensajeError(subir.error)}</Alert>}
@@ -67,7 +68,7 @@ export function Prediccion() {
 
   return (
     <>
-      <Titulo subtitulo="Ejecuta el modelo Random Forest sobre los datos del bimestre">Calcular riesgo</Titulo>
+      <Titulo antetitulo="Gestión" subtitulo="Ejecuta el modelo Random Forest sobre las notas, asistencia y encuestas del bimestre.">Calcular riesgo</Titulo>
       <Card sx={{ maxWidth: 640 }}>
         <CardContent>
           <Stack spacing={2}>
@@ -121,14 +122,16 @@ export function Alertas() {
 
   return (
     <>
-      <Titulo subtitulo="Estudiantes clasificados en riesgo alto: inicia el protocolo de tutoría">Alertas</Titulo>
-      {!data?.length ? <Alert severity="success">No tienes alertas. 🎉</Alert> : (
+      <Titulo antetitulo="Seguimiento" subtitulo="Estudiantes clasificados en riesgo alto: inicia el protocolo de tutoría.">Alertas</Titulo>
+      {!data?.length ? <Alert severity="success">No tienes alertas pendientes.</Alert> : (
         <Card>
           <List disablePadding>
             {data.map((a) => (
               <ListItem key={a.id} divider disablePadding
                 secondaryAction={!a.leida && <Button size="small" onClick={() => leer.mutate(a.id)}>Marcar leída</Button>}>
-                <ListItemButton onClick={() => navigate(`/estudiantes/${a.estudiante_id}`)} sx={{ pr: 16 }}>
+                <ListItemButton onClick={() => navigate(`/estudiantes/${a.estudiante_id}`)} sx={{ pr: { xs: 15, sm: 18 }, py: 1.5, gap: 1.5, alignItems: "flex-start" }}>
+                  <Box aria-label={a.leida ? "Leída" : "Sin leer"} sx={{ width: 10, height: 10, mt: 0.75, borderRadius: "50%", flexShrink: 0,
+                    bgcolor: a.leida ? "transparent" : SEMAFORO.rojo.color, border: a.leida ? `1.5px solid ${MARCA.sinCalcular}` : "none" }} />
                   <ListItemText
                     primary={a.mensaje}
                     secondary={new Date(a.fecha).toLocaleString("es-PE")}
@@ -158,7 +161,7 @@ export function ConfigRiesgo() {
 
   return (
     <>
-      <Titulo subtitulo="Ajusta la sensibilidad de las alertas según los criterios del año académico">Umbrales de riesgo</Titulo>
+      <Titulo antetitulo="Gestión" subtitulo="Ajusta la sensibilidad de las alertas según los criterios del año académico.">Umbrales de riesgo</Titulo>
       <Card sx={{ maxWidth: 640 }}>
         <CardContent>
           <Typography gutterBottom>Probabilidad de riesgo que el modelo debe superar para cada color:</Typography>
@@ -167,9 +170,16 @@ export function ConfigRiesgo() {
               valueLabelFormat={(v) => `${Math.round(v * 100)}%`} onChange={(_, v) => setValores(v as number[])} />
           </Box>
           <Stack spacing={0.5} sx={{ my: 2 }}>
-            <Typography sx={{ color: SEMAFORO.verde.color }}>● Verde: menos de {Math.round(valores[0] * 100)}%</Typography>
-            <Typography sx={{ color: SEMAFORO.amarillo.color }}>● Amarillo: de {Math.round(valores[0] * 100)}% a {Math.round(valores[1] * 100)}%</Typography>
-            <Typography sx={{ color: SEMAFORO.rojo.color }}>● Rojo: {Math.round(valores[1] * 100)}% o más</Typography>
+            {([
+              ["verde", `Riesgo bajo: menos de ${Math.round(valores[0] * 100)}%`],
+              ["amarillo", `Riesgo moderado: de ${Math.round(valores[0] * 100)}% a ${Math.round(valores[1] * 100)}%`],
+              ["rojo", `Riesgo alto: ${Math.round(valores[1] * 100)}% o más`],
+            ] as const).map(([r, texto]) => (
+              <Stack key={r} direction="row" spacing={1} alignItems="center">
+                <Box aria-hidden sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: SEMAFORO[r].color }} />
+                <Typography sx={{ color: SEMAFORO[r].texto, fontWeight: 700 }}>{texto}</Typography>
+              </Stack>
+            ))}
           </Stack>
           <Button variant="contained" onClick={() => guardar.mutate()} disabled={guardar.isPending}>Guardar</Button>
           {guardar.isSuccess && <Alert severity="success" sx={{ mt: 2 }}>Umbrales guardados. Se aplicarán en el próximo cálculo de riesgo.</Alert>}

@@ -7,8 +7,11 @@ import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { aulasApi, estudiantesApi } from "../api/endpoints";
 import type { Riesgo } from "../api/types";
-import { Cargando, ErrorApi, SemaforoChip, Titulo } from "../components/comunes";
-import { iniciales, SEMAFORO } from "../theme";
+import SearchIcon from "@mui/icons-material/SearchRounded";
+import PeopleIcon from "@mui/icons-material/PeopleAltOutlined";
+import { InputAdornment, Typography } from "@mui/material";
+import { Cargando, ErrorApi, SemaforoChip, Titulo, Vacio } from "../components/comunes";
+import { iniciales, MARCA, SEMAFORO } from "../theme";
 
 const ORDEN: Record<string, number> = { rojo: 0, amarillo: 1, verde: 2 };
 
@@ -39,8 +42,8 @@ export default function Estudiantes() {
 
   return (
     <>
-      <Titulo subtitulo="Ordenados por nivel de riesgo">Estudiantes</Titulo>
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
+      <Titulo antetitulo="Seguimiento" subtitulo="Ordenados por nivel de riesgo: primero quienes necesitan más acompañamiento.">Estudiantes</Titulo>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 1.5 }}>
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Aula</InputLabel>
           <Select label="Aula" value={aula ?? ""} onChange={(e) => setParams(e.target.value ? { aula: String(e.target.value) } : {})}>
@@ -57,20 +60,33 @@ export default function Estudiantes() {
             <MenuItem value="verde">Bajo</MenuItem>
           </Select>
         </FormControl>
-        <TextField size="small" label="Buscar por nombre o código" value={buscar} onChange={(e) => setBuscar(e.target.value)} sx={{ flex: 1 }} />
+        <TextField size="small" label="Buscar por nombre o código" type="search" value={buscar} onChange={(e) => setBuscar(e.target.value)} sx={{ flex: 1, order: { xs: -1, sm: 0 } }}
+          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> } }} />
       </Stack>
 
+      {!isLoading && !error && (
+        <Typography variant="auxiliar" role="status" sx={{ mb: 1.5 }}>
+          {filtrados.length} {filtrados.length === 1 ? "estudiante" : "estudiantes"}
+        </Typography>
+      )}
       {isLoading ? <Cargando /> : error ? <ErrorApi error={error} /> : (
         <Card>
           {movil ? (
-            <List disablePadding>
-              {filtrados.map((e) => (
-                <ListItemButton key={e.id} divider onClick={() => navigate(`/estudiantes/${e.id}`)}>
-                  <ListItemText primary={`${e.apellidos}, ${e.nombres}`} secondary={`${e.codigo} · ${nombreAula(e.aula_id)}`} />
-                  <SemaforoChip riesgo={e.riesgo} />
-                </ListItemButton>
-              ))}
-            </List>
+            filtrados.length ? (
+              <List disablePadding>
+                {filtrados.map((e) => (
+                  <ListItemButton key={e.id} divider onClick={() => navigate(`/estudiantes/${e.id}`)} sx={{ py: 1.25, gap: 1.5 }}>
+                    <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700,
+                      bgcolor: e.riesgo ? SEMAFORO[e.riesgo].fondo : MARCA.pizarraTenue, color: e.riesgo ? SEMAFORO[e.riesgo].texto : MARCA.pizarra }}>
+                      {iniciales(`${e.nombres} ${e.apellidos}`)}
+                    </Avatar>
+                    <ListItemText primary={`${e.apellidos}, ${e.nombres}`} secondary={`${e.codigo} · Aula ${nombreAula(e.aula_id)}`}
+                      primaryTypographyProps={{ fontWeight: 700, noWrap: true }} sx={{ minWidth: 0 }} />
+                    <SemaforoChip riesgo={e.riesgo} corto />
+                  </ListItemButton>
+                ))}
+              </List>
+            ) : <Vacio icono={<PeopleIcon />} titulo="Sin resultados" texto="No hay estudiantes con esos filtros." />
           ) : (
             <Table size="small">
               <TableHead>
@@ -83,12 +99,13 @@ export default function Estudiantes() {
               </TableHead>
               <TableBody>
                 {filtrados.map((e) => (
-                  <TableRow key={e.id} hover sx={{ cursor: "pointer" }} onClick={() => navigate(`/estudiantes/${e.id}`)}>
-                    <TableCell>{e.codigo}</TableCell>
+                  <TableRow key={e.id} hover tabIndex={0} sx={{ cursor: "pointer", "&:focus-visible": { outline: `2px solid ${MARCA.pizarra}`, outlineOffset: -2 } }}
+                    onClick={() => navigate(`/estudiantes/${e.id}`)} onKeyDown={(ev) => ev.key === "Enter" && navigate(`/estudiantes/${e.id}`)}>
+                    <TableCell sx={{ color: "text.secondary" }}>{e.codigo}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1.5} alignItems="center">
                         <Avatar sx={{ width: 32, height: 32, fontSize: 13, fontWeight: 700,
-                          bgcolor: e.riesgo ? SEMAFORO[e.riesgo].fondo : "#e9efec", color: e.riesgo ? SEMAFORO[e.riesgo].texto : "primary.main" }}>
+                          bgcolor: e.riesgo ? SEMAFORO[e.riesgo].fondo : MARCA.pizarraTenue, color: e.riesgo ? SEMAFORO[e.riesgo].texto : MARCA.pizarra }}>
                           {iniciales(`${e.nombres} ${e.apellidos}`)}
                         </Avatar>
                         <span style={{ fontWeight: 600 }}>{e.apellidos}, {e.nombres}</span>
@@ -99,7 +116,7 @@ export default function Estudiantes() {
                   </TableRow>
                 ))}
                 {!filtrados.length && (
-                  <TableRow><TableCell colSpan={4} align="center">No hay estudiantes con esos filtros.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4}><Vacio icono={<PeopleIcon />} titulo="Sin resultados" texto="No hay estudiantes con esos filtros." /></TableCell></TableRow>
                 )}
               </TableBody>
             </Table>

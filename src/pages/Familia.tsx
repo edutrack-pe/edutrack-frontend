@@ -42,7 +42,7 @@ export function Encuesta() {
 
   return (
     <>
-      <Titulo subtitulo="Toma 2 minutos. Nos ayuda a acompañar mejor a su hijo(a). Sus respuestas son confidenciales.">
+      <Titulo antetitulo="Familia" subtitulo="Toma 2 minutos. Nos ayuda a acompañar mejor a su hijo(a). Sus respuestas son confidenciales.">
         Encuesta familiar
       </Titulo>
       <Card sx={{ maxWidth: 720 }}>
@@ -67,7 +67,9 @@ export function Encuesta() {
                 onChange={(v) => set("tiempo_disponible_padres", v)} opciones={[[1, "Poco"], [2, "Regular"], [3, "Bastante"]]} />
               <Escala label="¿Con qué frecuencia conversan sobre el colegio?" value={form.comunicacion_familiar}
                 onChange={(v) => set("comunicacion_familiar", v)} opciones={[[1, "Casi nunca"], [2, "A veces"], [3, "Siempre"]]} />
-              <Button type="submit" variant="contained" disabled={!estudianteId || enviar.isPending}>Enviar encuesta</Button>
+              <Button type="submit" variant="contained" size="large" disabled={!estudianteId || enviar.isPending} sx={{ alignSelf: { sm: "flex-start" } }}>
+                {enviar.isPending ? "Enviando…" : "Enviar encuesta"}
+              </Button>
               {enviar.isSuccess && <Alert severity="success">¡Gracias! Su encuesta fue registrada.</Alert>}
               {enviar.isError && <Alert severity="error">{mensajeError(enviar.error)}</Alert>}
             </Stack>
@@ -102,7 +104,7 @@ export function Actas() {
 
   return (
     <>
-      <Titulo subtitulo="Registra los acuerdos de las reuniones con los padres de familia">Actas de tutoría</Titulo>
+      <Titulo antetitulo="Tutoría" subtitulo="Registra los acuerdos de las reuniones con los padres de familia.">Actas de tutoría</Titulo>
       <Stack spacing={2} sx={{ maxWidth: 800 }}>
         <FormControl>
           <InputLabel>Estudiante</InputLabel>
@@ -118,7 +120,9 @@ export function Actas() {
                   <Typography variant="h6">Nueva acta</Typography>
                   <TextField label="Acuerdos" multiline minRows={3} value={acuerdos} onChange={(e) => setAcuerdos(e.target.value)} />
                   <TextField label="Compromisos del apoderado" multiline minRows={2} value={compromisos} onChange={(e) => setCompromisos(e.target.value)} />
-                  <Button variant="contained" disabled={acuerdos.length < 3 || crear.isPending} onClick={() => crear.mutate()}>Guardar acta</Button>
+                  <Button variant="contained" disabled={acuerdos.length < 3 || crear.isPending} onClick={() => crear.mutate()} sx={{ alignSelf: { sm: "flex-start" } }}>
+                    {crear.isPending ? "Guardando…" : "Guardar acta"}
+                  </Button>
                   {crear.isError && <Alert severity="error">{mensajeError(crear.error)}</Alert>}
                 </Stack>
               </CardContent>
@@ -127,7 +131,8 @@ export function Actas() {
               <List>
                 {actas.data?.length ? actas.data.map((a) => (
                   <ListItem key={a.id} divider>
-                    <ListItemText primary={`${a.fecha} · ${a.acuerdos}`} secondary={a.compromisos} />
+                    <ListItemText primary={a.acuerdos} secondary={`${new Date(`${a.fecha}T00:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}${a.compromisos ? ` · Compromisos: ${a.compromisos}` : ""}`}
+                      primaryTypographyProps={{ fontWeight: 700 }} />
                   </ListItem>
                 )) : <ListItem><ListItemText secondary="Sin actas registradas." /></ListItem>}
               </List>
@@ -147,7 +152,7 @@ export function Calendario() {
 
   return (
     <>
-      <Titulo subtitulo="Se resaltan las evaluaciones de los próximos 8 días para organizar el repaso en casa">
+      <Titulo antetitulo="Seguimiento" subtitulo="Se resaltan las evaluaciones de los próximos 8 días para organizar el repaso en casa.">
         Calendario de evaluaciones
       </Titulo>
       <Card sx={{ maxWidth: 800 }}>
@@ -155,8 +160,8 @@ export function Calendario() {
           {futuros.length ? futuros.map((e) => {
             const pronto = (e.dias_restantes ?? 99) <= 8;
             return (
-              <ListItem key={e.id} divider secondaryAction={
-                <Chip size="small" color={pronto ? "warning" : "default"}
+              <ListItem key={e.id} divider sx={{ py: 1.5, pr: 14 }} secondaryAction={
+                <Chip size="small" color={pronto ? "primary" : "default"} variant={pronto ? "filled" : "outlined"}
                   label={e.dias_restantes === 0 ? "Hoy" : `en ${e.dias_restantes} días`} />
               }>
                 <ListItemText primary={e.titulo} secondary={new Date(`${e.fecha}T00:00:00`).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}

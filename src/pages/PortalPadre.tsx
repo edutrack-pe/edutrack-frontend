@@ -25,8 +25,9 @@ export default function PortalPadre() {
   return (
     <>
       <Titulo
-        subtitulo="Resumen del avance escolar y recomendaciones para el hogar"
-        accion={<Button variant="contained" onClick={() => navigate("/encuesta")}>Completar encuesta familiar</Button>}
+        antetitulo="Portal familiar"
+        subtitulo="Resumen del avance escolar y recomendaciones para el hogar."
+        accion={<Button variant="outlined" onClick={() => navigate("/encuesta")}>Completar encuesta familiar</Button>}
       >
         Seguimiento de mi hijo(a)
       </Titulo>
