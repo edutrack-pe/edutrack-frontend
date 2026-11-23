@@ -45,15 +45,15 @@ export default function Estudiantes() {
       <Titulo antetitulo="Seguimiento" subtitulo="Ordenados por nivel de riesgo: primero quienes necesitan más acompañamiento.">Estudiantes</Titulo>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 1.5 }}>
         <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>Aula</InputLabel>
-          <Select label="Aula" value={aula ?? ""} onChange={(e) => setParams(e.target.value ? { aula: String(e.target.value) } : {})}>
+          <InputLabel id="filtro-aula-etiqueta">Aula</InputLabel>
+          <Select labelId="filtro-aula-etiqueta" id="filtro-aula" label="Aula" value={aula ?? ""} onChange={(e) => setParams(e.target.value ? { aula: String(e.target.value) } : {})}>
             <MenuItem value="">Todas</MenuItem>
             {aulas.data?.map((a) => <MenuItem key={a.id} value={a.id}>{a.nombre}</MenuItem>)}
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Riesgo</InputLabel>
-          <Select label="Riesgo" value={riesgo} onChange={(e) => setRiesgo(e.target.value as Riesgo | "todos")}>
+          <InputLabel id="filtro-riesgo-etiqueta">Riesgo</InputLabel>
+          <Select labelId="filtro-riesgo-etiqueta" id="filtro-riesgo" label="Riesgo" value={riesgo} onChange={(e) => setRiesgo(e.target.value as Riesgo | "todos")}>
             <MenuItem value="todos">Todos</MenuItem>
             <MenuItem value="rojo">Alto</MenuItem>
             <MenuItem value="amarillo">Moderado</MenuItem>

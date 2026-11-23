@@ -199,7 +199,8 @@ function resolver(c: InternalAxiosRequestConfig): unknown {
 }
 
 export const mockAdapter: AxiosAdapter = async (config_) => {
-  await new Promise((r) => setTimeout(r, 200));
+  // Simula la latencia de red en la demo; en las pruebas responde de inmediato.
+  if (import.meta.env.MODE !== "test") await new Promise((r) => setTimeout(r, 200));
   const data = config_.responseType === "blob" ? new Blob(["%PDF-1.4 demo"], { type: "application/pdf" }) : resolver(config_);
   return { data, status: 200, statusText: "OK", headers: {}, config: config_ } as AxiosResponse;
 };

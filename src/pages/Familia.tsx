@@ -51,8 +51,8 @@ export function Encuesta() {
             <Stack spacing={3}>
               {(hijos.data?.length ?? 0) > 1 && (
                 <FormControl>
-                  <InputLabel>Estudiante</InputLabel>
-                  <Select label="Estudiante" value={estudianteId} onChange={(e) => set("estudiante_id", Number(e.target.value))}>
+                  <InputLabel id="encuesta-estudiante-etiqueta">Estudiante</InputLabel>
+                  <Select labelId="encuesta-estudiante-etiqueta" id="encuesta-estudiante" label="Estudiante" value={estudianteId} onChange={(e) => set("estudiante_id", Number(e.target.value))}>
                     {hijos.data!.map((h) => <MenuItem key={h.id} value={h.id}>{h.nombres} {h.apellidos}</MenuItem>)}
                   </Select>
                 </FormControl>
@@ -107,8 +107,8 @@ export function Actas() {
       <Titulo antetitulo="Tutoría" subtitulo="Registra los acuerdos de las reuniones con los padres de familia.">Actas de tutoría</Titulo>
       <Stack spacing={2} sx={{ maxWidth: 800 }}>
         <FormControl>
-          <InputLabel>Estudiante</InputLabel>
-          <Select label="Estudiante" value={estudianteId} onChange={(e) => setEstudianteId(e.target.value as number)}>
+          <InputLabel id="acta-estudiante-etiqueta">Estudiante</InputLabel>
+          <Select labelId="acta-estudiante-etiqueta" id="acta-estudiante" label="Estudiante" value={estudianteId} onChange={(e) => setEstudianteId(e.target.value as number)}>
             {estudiantes.data?.map((e) => <MenuItem key={e.id} value={e.id}>{e.apellidos}, {e.nombres}</MenuItem>)}
           </Select>
         </FormControl>

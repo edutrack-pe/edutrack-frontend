@@ -73,14 +73,14 @@ export function Prediccion() {
         <CardContent>
           <Stack spacing={2}>
             <FormControl>
-              <InputLabel>Aula</InputLabel>
-              <Select label="Aula" value={aula} onChange={(e) => setAula(e.target.value as number)}>
+              <InputLabel id="prediccion-aula-etiqueta">Aula</InputLabel>
+              <Select labelId="prediccion-aula-etiqueta" id="prediccion-aula" label="Aula" value={aula} onChange={(e) => setAula(e.target.value as number)}>
                 {aulas.data?.map((a) => <MenuItem key={a.id} value={a.id}>{a.nombre}</MenuItem>)}
               </Select>
             </FormControl>
             <FormControl>
-              <InputLabel>Bimestre</InputLabel>
-              <Select label="Bimestre" value={bimestre} onChange={(e) => setBimestre(Number(e.target.value))}>
+              <InputLabel id="prediccion-bimestre-etiqueta">Bimestre</InputLabel>
+              <Select labelId="prediccion-bimestre-etiqueta" id="prediccion-bimestre" label="Bimestre" value={bimestre} onChange={(e) => setBimestre(Number(e.target.value))}>
                 {[1, 2, 3, 4].map((b) => <MenuItem key={b} value={b}>Bimestre {b}</MenuItem>)}
               </Select>
             </FormControl>

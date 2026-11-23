@@ -61,7 +61,9 @@ src/
 ├── pages/        # pantallas
 ├── mocks/        # datos simulados (VITE_USE_MOCKS=true)
 ├── theme.ts      # colores del semáforo y tema MUI
-└── main.tsx      # rutas
+├── App.tsx       # rutas y proveedores
+├── main.tsx      # punto de entrada
+└── test/         # configuración y utilidades de pruebas
 ```
 
 ## Scripts
@@ -71,6 +73,12 @@ src/
 | `npm run dev` | Servidor de desarrollo |
 | `npm run lint` | Verificación de tipos (TypeScript) |
 | `npm run build` | Build de producción en `dist/` |
+| `npm test` | Pruebas unitarias y de integración (Vitest + Testing Library) |
+| `npm run test:coverage` | Pruebas con reporte de cobertura en `coverage/` (falla si baja del 70 %) |
+
+## Pruebas
+
+Las pruebas corren contra los datos simulados (`VITE_USE_MOCKS=true`), sin backend. Cubren el login y el control de acceso por rol (HU01), la carga masiva (HU03), el cálculo de riesgo (HU04), el panorama (HU05), las alertas (HU06), la ficha, el portal del apoderado, las actas, la encuesta, los umbrales y la vista móvil. El CI de GitHub Actions las ejecuta en cada push y Pull Request y exige más del 70 % de cobertura, como pide la Definition of Done.
 
 ## Docker
 
