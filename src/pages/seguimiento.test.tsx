@@ -119,8 +119,9 @@ describe("Panorama (dashboard)", () => {
 
   it("indica cuando nadie está en riesgo alto", async () => {
     responderCon("get", "/dashboard/resumen", {
-      total_estudiantes: 2, verde: 1, amarillo: 1, rojo: 0, sin_calcular: 0,
-      aulas: [{ aula_id: 1, aula: "3° A", total: 2, verde: 1, amarillo: 1, rojo: 0, sin_calcular: 0 }],
+      total_estudiantes: 2, evaluados: 2, verde: 1, amarillo: 1, rojo: 0, sin_calcular: 0,
+      porcentajes: { verde: 50, amarillo: 50, rojo: 0 },
+      aulas: [{ aula_id: 1, aula: "3° A", grado: 3, seccion: "A", total: 2, verde: 1, amarillo: 1, rojo: 0, sin_calcular: 0 }],
     });
     responderCon("get", "/estudiantes", []);
     renderApp("/dashboard", "director");
@@ -261,8 +262,8 @@ describe("Ficha del estudiante", () => {
   });
 
   it("avisa cuando el riesgo aún no se calculó", async () => {
-    const e: Estudiante = { id: 99, codigo: "A0099", nombres: "Lucía", apellidos: "Prueba", aula_id: 1, riesgo: null, probabilidad: null };
-    const vacia: Ficha = { estudiante: e, aula: "3° A", notas: [], asistencias_total: 0, inasistencias: 0, tareas_entregadas_pct: null, prediccion: null, pautas: [] };
+    const e: Estudiante = { id: 99, codigo: "A0099", nombres: "Lucía", apellidos: "Prueba", aula_id: 1, apoderado_id: null, riesgo: null, probabilidad: null };
+    const vacia: Ficha = { estudiante: e, aula: "3° A", notas: [], asistencias_total: 0, inasistencias: 0, asistencia_pct: null, conducta: [], tareas_entregadas_pct: null, prediccion: null, pautas: [] };
     responderCon("get", "/estudiantes/99", vacia as never);
     renderApp("/estudiantes/99", "director");
     expect(await screen.findByText("Aún no se ha calculado el riesgo de este estudiante.")).toBeInTheDocument();

@@ -14,7 +14,26 @@ export interface Aula {
   id: number;
   nombre: string;
   grado: number;
+  seccion: string;
   tutor_id: number | null;
+}
+
+export interface Apoderado {
+  id: number;
+  nombre: string;
+  email: string;
+}
+
+/** HU02 · Datos editables del estudiante. */
+export interface EstudianteDatos {
+  nombres: string;
+  apellidos: string;
+  aula_id: number;
+  apoderado_id: number | null;
+}
+
+export interface EstudianteNuevo extends EstudianteDatos {
+  codigo: string;
 }
 
 export interface Estudiante {
@@ -23,6 +42,7 @@ export interface Estudiante {
   nombres: string;
   apellidos: string;
   aula_id: number;
+  apoderado_id: number | null;
   riesgo: Riesgo | null;
   probabilidad: number | null;
 }
@@ -43,7 +63,17 @@ export interface Prediccion {
   riesgo: Riesgo;
   probabilidad: number;
   factores: string[];
+  modelo_version: string | null;
   fecha: string;
+}
+
+export interface Conducta {
+  id: number;
+  estudiante_id: number;
+  bimestre: number;
+  /** 1 buena · 2 regular · 3 necesita mejorar */
+  valor: number;
+  observacion: string | null;
 }
 
 export interface Ficha {
@@ -52,6 +82,8 @@ export interface Ficha {
   notas: Nota[];
   asistencias_total: number;
   inasistencias: number;
+  asistencia_pct: number | null;
+  conducta: Conducta[];
   tareas_entregadas_pct: number | null;
   prediccion: Prediccion | null;
   pautas: { factor: string; texto: string }[];
@@ -60,6 +92,8 @@ export interface Ficha {
 export interface ResumenAula {
   aula_id: number;
   aula: string;
+  grado: number;
+  seccion: string;
   total: number;
   verde: number;
   amarillo: number;
@@ -69,10 +103,14 @@ export interface ResumenAula {
 
 export interface Dashboard {
   total_estudiantes: number;
+  /** Estudiantes con al menos una predicción. */
+  evaluados: number;
   verde: number;
   amarillo: number;
   rojo: number;
   sin_calcular: number;
+  /** Porcentaje de cada nivel sobre los evaluados (0 a 100). */
+  porcentajes: Record<Riesgo, number>;
   aulas: ResumenAula[];
 }
 
@@ -82,11 +120,24 @@ export interface ResultadoPrediccion {
   procesados: number;
   sin_datos: string[];
   resumen: Record<Riesgo, number>;
+  alertas_generadas: number;
+  modelo_version: string | null;
+}
+
+export interface FiltrosDashboard {
+  grado?: number;
+  seccion?: string;
 }
 
 export interface Alerta {
   id: number;
   estudiante_id: number;
+  estudiante: string | null;
+  aula: string | null;
+  prediccion_id: number | null;
+  riesgo: Riesgo;
+  probabilidad: number | null;
+  factores: string[];
   mensaje: string;
   leida: boolean;
   fecha: string;
@@ -125,6 +176,8 @@ export interface Encuesta {
 }
 
 export interface ResultadoIngesta {
+  /** Filas de datos leídas del archivo (sin la cabecera). */
+  filas: number;
   insertados: number;
   errores: string[];
 }

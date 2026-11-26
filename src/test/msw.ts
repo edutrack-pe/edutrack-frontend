@@ -59,12 +59,12 @@ export function demorar(metodo: Metodo, ruta: string, ms: number) {
 
 /** Registra las peticiones que llegan a la API (método, ruta y cuerpo JSON). */
 export function espiarPeticiones() {
-  const peticiones: { metodo: string; ruta: string; cuerpo: unknown }[] = [];
+  const peticiones: { metodo: string; ruta: string; query: Record<string, string>; cuerpo: unknown }[] = [];
   server.events.on("request:start", async ({ request }) => {
     const url = new URL(request.url);
     const tipo = request.headers.get("content-type") ?? "";
     const cuerpo = tipo.includes("json") ? await request.clone().json() : undefined;
-    peticiones.push({ metodo: request.method, ruta: url.pathname.replace(/^\/api/, ""), cuerpo });
+    peticiones.push({ metodo: request.method, ruta: url.pathname.replace(/^\/api/, ""), query: Object.fromEntries(url.searchParams), cuerpo });
   });
   return peticiones;
 }

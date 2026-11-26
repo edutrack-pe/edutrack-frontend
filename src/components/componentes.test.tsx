@@ -11,7 +11,7 @@ import { FranjaSemaforo, MapaAula } from "./MapaAula";
 import { FilaMetricas, Metrica, Superficie } from "./Superficie";
 
 const est = (id: number, riesgo: Estudiante["riesgo"], probabilidad: number | null = null): Estudiante => ({
-  id, codigo: `A${id}`, nombres: `Nombre${id}`, apellidos: `Apellido${id}`, aula_id: 1, riesgo, probabilidad,
+  id, codigo: `A${id}`, nombres: `Nombre${id}`, apellidos: `Apellido${id}`, aula_id: 1, apoderado_id: null, riesgo, probabilidad,
 });
 
 /** Contraste WCAG entre dos colores hex. */
