@@ -22,7 +22,8 @@ const PANTALLAS: [string, string, Rol | undefined, () => Promise<unknown>][] = [
 ];
 
 // axe recorre todo el DOM (el panorama tiene ~90 carpetas): en jsdom puede tardar más que el límite por defecto.
-describe("axe-core sin violaciones WCAG 2.1 AA", { timeout: 60_000 }, () => {
+// axe recorre la tabla completa de 90 estudiantes: con la instrumentación de cobertura supera el minuto.
+describe("axe-core sin violaciones WCAG 2.1 AA", { timeout: 150_000 }, () => {
   it.each(PANTALLAS)("%s (escritorio)", async (_, ruta, rol, listo) => {
     renderApp(ruta, rol);
     await listo();
