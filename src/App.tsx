@@ -10,6 +10,7 @@ import Estudiantes from "./pages/Estudiantes";
 import { Actas, Calendario, Encuesta } from "./pages/Familia";
 import FichaEstudiante from "./pages/FichaEstudiante";
 import Login from "./pages/Login";
+import Modelo from "./pages/Modelo";
 import { Alertas, CargaCSV, ConfigRiesgo, Prediccion } from "./pages/Operaciones";
 import PortalPadre from "./pages/PortalPadre";
 import { theme } from "./theme";
@@ -64,6 +65,9 @@ export function App() {
           </Route>
           <Route element={<ProtectedRoute roles={["analista", "director", "tutor"]} />}>
             <Route path="/prediccion" element={<Prediccion />} />
+          </Route>
+          <Route element={<ProtectedRoute roles={["director", "analista"]} />}>
+            <Route path="/modelo" element={<Modelo />} />
           </Route>
           <Route element={<ProtectedRoute roles={["analista"]} />}>
             <Route path="/configuracion" element={<ConfigRiesgo />} />

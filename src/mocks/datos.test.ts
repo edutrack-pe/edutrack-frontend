@@ -56,6 +56,7 @@ describe("autenticación y permisos", () => {
     ["get", "/dashboard/resumen", ["director", "tutor", "analista", "docente"], ["padre"]],
     ["get", "/alertas", ["tutor", "director"], ["docente", "analista", "padre"]],
     ["get", "/config/riesgo", ["analista", "director"], ["tutor", "docente", "padre"]],
+    ["get", "/modelo", ["director", "analista"], ["tutor", "docente", "padre"]],
     ["post", "/ingesta/csv", ["docente"], ["director", "analista", "tutor", "padre"]],
     ["get", "/reportes/aula/1/pdf", ["director", "tutor"], ["docente", "analista", "padre"]],
     ["get", "/actas", ["tutor", "director"], ["docente", "analista", "padre"]],

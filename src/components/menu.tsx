@@ -4,6 +4,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonthOutlined";
 import DashboardIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import DescriptionIcon from "@mui/icons-material/DescriptionOutlined";
 import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroomOutlined";
+import InsightsIcon from "@mui/icons-material/InsightsOutlined";
 import NotificationsIcon from "@mui/icons-material/NotificationsNoneRounded";
 import PeopleIcon from "@mui/icons-material/PeopleAltOutlined";
 import QuizIcon from "@mui/icons-material/QuizOutlined";
@@ -35,6 +36,7 @@ export const MENU: ItemMenu[] = [
   { ruta: "/calendario", texto: "Calendario", icono: <CalendarMonthIcon />, roles: ["director", "docente", "tutor", "padre", "analista"], grupo: "seguimiento" },
   { ruta: "/carga", texto: "Cargar notas", icono: <UploadFileIcon />, roles: ["docente"], grupo: "gestion" },
   { ruta: "/prediccion", texto: "Calcular riesgo", icono: <AssessmentIcon />, roles: ["analista", "director", "tutor"], grupo: "gestion" },
+  { ruta: "/modelo", texto: "Modelo predictivo", icono: <InsightsIcon />, roles: ["director", "analista"], grupo: "gestion" },
   { ruta: "/configuracion", texto: "Umbrales de riesgo", icono: <TuneIcon />, roles: ["analista"], grupo: "gestion" },
 ];
 

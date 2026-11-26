@@ -18,6 +18,7 @@ const PANTALLAS: [string, string, Rol | undefined, () => Promise<unknown>][] = [
   ["Actas de tutoría", "/actas", "tutor", () => screen.findByRole("combobox", { name: "Estudiante" })],
   ["Carga masiva", "/carga", "docente", () => screen.findByRole("button", { name: "Importar" })],
   ["Calcular riesgo", "/prediccion", "analista", () => screen.findByRole("combobox", { name: "Aula" })],
+  ["Modelo predictivo", "/modelo", "director", () => screen.findByRole("region", { name: "Matriz de confusión" })],
   ["Calendario", "/calendario", "docente", () => screen.findAllByText(/Evaluación bimestral de/)],
 ];
 

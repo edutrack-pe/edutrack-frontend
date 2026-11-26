@@ -106,6 +106,9 @@ describe("Control de acceso por rol (RBAC en el frontend)", () => {
     ["/carga", "director", titularPanorama],
     ["/carga", "analista", titularPanorama],
     ["/prediccion", "docente", titularPanorama],
+    ["/modelo", "tutor", titularPanorama],
+    ["/modelo", "docente", titularPanorama],
+    ["/modelo", "padre", titularPortal],
     ["/portal", "director", titularPanorama],
     ["/encuesta", "tutor", titularPanorama],
   ])("%s está prohibido para %s y vuelve a su inicio", async (ruta, rol, titular) => {

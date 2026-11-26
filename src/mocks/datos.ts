@@ -7,7 +7,7 @@
  * - los permisos por rol y los mensajes de error copian los de `edutrack-backend` (401, 403, 404, 422).
  */
 import type {
-  Acta, Alerta, Apoderado, Aula, ConfigRiesgo, Dashboard, Estudiante, EstudianteDatos, EstudianteNuevo, Evento, Ficha,
+  Acta, Alerta, Apoderado, Aula, ConfigRiesgo, Dashboard, Estudiante, EstudianteDatos, EstudianteNuevo, Evento, Ficha, FichaModelo,
   Nota, Prediccion, Riesgo, Rol,
 } from "../api/types";
 
@@ -35,6 +35,47 @@ export const NOMBRES_DEMO: Record<Rol, string> = {
 };
 export const PDF_DEMO = "%PDF-1.4 demo";
 export const MODELO_DEMO = "rf-demo";
+
+const matriz = (vn: number, fp: number, fn: number, vp: number) => ({ vn, fp, fn, vp });
+
+/**
+ * Ficha del modelo publicado, copiada sin cambios de edutrack-ml/ml-service/reports/metricas.json
+ * (rf-20261126-9ad6a250). En la demo las predicciones son simuladas; estas métricas son las del modelo real.
+ */
+export const FICHA_MODELO: FichaModelo = {
+  version: "rf-20261126-9ad6a250",
+  fecha_entrenamiento: "2026-11-26T20:29:37+00:00",
+  variables: ["promedio", "inasistencias", "conducta", "horas_estudio", "nivel_edu_padres", "acceso_tecnologia",
+    "tiempo_disponible_padres", "comunicacion_familiar", "cursos_desaprobados", "tareas_entregadas_pct"],
+  umbral_decision: 0.5,
+  evaluacion: {
+    datos: { origen: "sintético (pipeline/dataset.py, semilla 42)", filas: 2000, entrenamiento: 1600, prueba: 400, proporcion_en_riesgo: 0.283 },
+    validacion_cruzada: { folds: 5, f1_media: 0.7646, f1_desviacion: 0.018, auc_media: 0.9144 },
+    prueba: { umbral: 0.5, precision: 0.6842, recall: 0.8053, f1: 0.7398, matriz_confusion: matriz(245, 42, 22, 91), auc_roc: 0.9122 },
+    sensibilidad_umbral: [
+      { umbral: 0.4, precision: 0.6533, recall: 0.8673, f1: 0.7452, matriz_confusion: matriz(235, 52, 15, 98) },
+      { umbral: 0.5, precision: 0.6842, recall: 0.8053, f1: 0.7398, matriz_confusion: matriz(245, 42, 22, 91) },
+      { umbral: 0.7, precision: 0.7802, recall: 0.6283, f1: 0.6961, matriz_confusion: matriz(267, 20, 42, 71) },
+    ],
+    importancia_variables: [
+      { variable: "promedio", importancia: 0.4586 },
+      { variable: "cursos_desaprobados", importancia: 0.3054 },
+      { variable: "inasistencias", importancia: 0.0524 },
+      { variable: "tareas_entregadas_pct", importancia: 0.0375 },
+      { variable: "nivel_edu_padres", importancia: 0.0347 },
+      { variable: "conducta", importancia: 0.0304 },
+      { variable: "comunicacion_familiar", importancia: 0.0303 },
+      { variable: "horas_estudio", importancia: 0.0286 },
+      { variable: "tiempo_disponible_padres", importancia: 0.0128 },
+      { variable: "acceso_tecnologia", importancia: 0.0092 },
+    ],
+    variables_descartadas_vif: [],
+    vif_maximo: 1.617,
+    mejores_hiperparametros: { max_depth: 6, min_samples_leaf: 3, n_estimators: 400 },
+    metas: { f1_minimo: 0.75, auc_minimo_exclusivo: 0.8 },
+    cumple_rnf02: false,
+  },
+};
 /** Apoderados demo; el usuario `padre@…` es el apoderado del estudiante 5. */
 export const APODERADOS: Apoderado[] = [
   { id: 7, nombre: "Juan Pérez", email: "padre@edutrack.pe" },
@@ -63,6 +104,7 @@ const PERMISOS = {
   alertas: ["tutor", "director"],
   pdf: ["director", "tutor"],
   configLeer: ["analista", "director"],
+  modelo: ["director", "analista"],
   configEscribir: ["analista"],
   ingesta: ["docente"],
   estudianteCrear: ["director", "analista"],
@@ -367,6 +409,8 @@ export function crearBackendDemo() {
     }
 
     if (ruta.match(/^\/reportes\/aula\/\d+\/pdf$/)) return exigir(PERMISOS.pdf) ?? { status: 200, data: PDF_DEMO, tipo: "pdf" };
+
+    if (ruta === "/modelo") return exigir(PERMISOS.modelo) ?? ok(FICHA_MODELO);
 
     if (ruta === "/config/riesgo") {
       if (m === "put") {
