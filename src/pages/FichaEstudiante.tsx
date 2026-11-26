@@ -1,14 +1,19 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBackRounded";
+import EditIcon from "@mui/icons-material/EditOutlined";
 import LightbulbIcon from "@mui/icons-material/LightbulbOutlined";
 import { Alert, Avatar, Box, Button, Chip, LinearProgress, Stack, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { estudiantesApi } from "../api/endpoints";
 import type { Ficha, Riesgo } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
 import { Cargando, ErrorApi, MedidorRiesgo, NOMBRE_FACTOR, SemaforoChip } from "../components/comunes";
+import { FormularioEstudiante, PUEDEN_EDITAR } from "../components/FormularioEstudiante";
 import { FilaMetricas, Metrica, Superficie } from "../components/Superficie";
 import { ESPACIO, iniciales, MARCA, RADIO, SEMAFORO } from "../theme";
 
+const CONDUCTA: Record<number, string> = { 1: "Buena", 2: "Regular", 3: "Por mejorar" };
 const nivelNota = (v: number): Riesgo => (v < 11 ? "rojo" : v < 14 ? "amarillo" : "verde");
 
 /** Contenido de la ficha; lo reutiliza el portal de padres. */
@@ -17,14 +22,19 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
   const s = p ? SEMAFORO[p.riesgo] : null;
   const notas = ficha.notas;
   const promedio = notas.length ? notas.reduce((acc, n) => acc + n.valor, 0) / notas.length : null;
-  const asistencia = ficha.asistencias_total
-    ? Math.round(((ficha.asistencias_total - ficha.inasistencias) / ficha.asistencias_total) * 100)
-    : null;
+  const asistencia = ficha.asistencia_pct != null ? Math.round(ficha.asistencia_pct) : null;
+  const conducta = ficha.conducta.at(-1);
   const tareas = ficha.tareas_entregadas_pct != null ? Math.round(ficha.tareas_entregadas_pct * 100) : null;
   const e = ficha.estudiante;
 
   return (
     <Box sx={{ display: "grid", gap: ESPACIO.bloque }}>
+      {paraPadres && (
+        <Alert severity="info" variant="outlined">
+          El nivel de acompañamiento es una <strong>señal preventiva, no un diagnóstico</strong>. Sirve para que el colegio y la familia
+          actúen a tiempo. Ante cualquier duda, converse con el tutor(a).
+        </Alert>
+      )}
       {/* Encabezado: quién es, su semáforo y por qué */}
       <Superficie component="article" sx={{ p: { xs: 2.5, md: 4 } }}>
         <Box sx={{ display: "grid", gap: { xs: 3, md: 5 }, gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) minmax(0, 1.2fr)" }, alignItems: "center" }}>
@@ -46,6 +56,9 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
                 <Box>
                   <Typography variant="etiqueta" component="p">Probabilidad de riesgo · bimestre {p.bimestre}</Typography>
                   <Box sx={{ mt: 2 }}><MedidorRiesgo probabilidad={p.probabilidad} /></Box>
+                  <Typography variant="auxiliar" sx={{ mt: 1.5 }}>
+                    Calculado el {new Date(p.fecha).toLocaleDateString("es-PE")}{p.modelo_version && ` · modelo ${p.modelo_version}`}
+                  </Typography>
                 </Box>
               )}
               {p.riesgo !== "verde" && (
@@ -65,13 +78,17 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
         </Box>
 
         <Box sx={{ mt: { xs: 3, md: 4 }, pt: { xs: 2.5, md: 3 }, borderTop: `1px solid ${MARCA.linea}` }}>
-          <FilaMetricas>
+          <FilaMetricas columnas={conducta ? 4 : 3}>
             <Metrica etiqueta="Promedio" valor={promedio != null ? promedio.toFixed(1) : "–"} detalle="Escala vigesimal (0 a 20)"
               estado={promedio != null && promedio < 11 ? "rojo" : null} />
             <Metrica etiqueta="Asistencia" valor={asistencia != null ? `${asistencia} %` : "–"} detalle={`${ficha.inasistencias} faltas`}
               estado={asistencia != null && asistencia < 85 ? "amarillo" : null} />
             <Metrica etiqueta="Tareas entregadas" valor={tareas != null ? `${tareas} %` : "–"} detalle="Del bimestre en curso"
               estado={tareas != null && tareas < 70 ? "amarillo" : null} />
+            {conducta && (
+              <Metrica etiqueta="Conducta" valor={CONDUCTA[conducta.valor] ?? "–"} detalle={`Bimestre ${conducta.bimestre}`}
+                estado={conducta.valor === 3 ? "amarillo" : null} />
+            )}
           </FilaMetricas>
         </Box>
       </Superficie>
@@ -130,6 +147,8 @@ export function DetalleFicha({ ficha, paraPadres = false }: { ficha: Ficha; para
 export default function FichaEstudiante() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { sesion } = useAuth();
+  const [editando, setEditando] = useState(false);
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ["ficha", id], queryFn: () => estudiantesApi.ficha(Number(id)) });
 
   if (isLoading) return <Cargando />;
@@ -137,7 +156,15 @@ export default function FichaEstudiante() {
 
   return (
     <>
-      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ mb: 2, ml: -1 }}>Volver</Button>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ ml: -1 }}>Volver</Button>
+        {sesion && PUEDEN_EDITAR.includes(sesion.rol) && (
+          <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setEditando(true)}>Editar datos</Button>
+        )}
+      </Stack>
+      {editando && sesion && (
+        <FormularioEstudiante abierto rol={sesion.rol} estudiante={data.estudiante} onCerrar={() => setEditando(false)} />
+      )}
       <DetalleFicha ficha={data} />
     </>
   );

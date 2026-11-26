@@ -1,5 +1,6 @@
+import PersonAddIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import {
-  Avatar, Card, FormControl, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, Stack, Table,
+  Avatar, Button, Card, FormControl, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, Stack, Table,
   TableBody, TableCell, TableHead, TableRow, TableSortLabel, TextField, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +11,9 @@ import type { Estudiante, Riesgo } from "../api/types";
 import SearchIcon from "@mui/icons-material/SearchRounded";
 import PeopleIcon from "@mui/icons-material/PeopleAltOutlined";
 import { InputAdornment, Typography } from "@mui/material";
+import { useAuth } from "../auth/AuthContext";
 import { Cargando, ErrorApi, SemaforoChip, Titulo, Vacio } from "../components/comunes";
+import { FormularioEstudiante, PUEDEN_REGISTRAR } from "../components/FormularioEstudiante";
 import { iniciales, MARCA, SEMAFORO } from "../theme";
 
 const ORDEN: Record<string, number> = { rojo: 0, amarillo: 1, verde: 2 };
@@ -30,6 +33,9 @@ const COLUMNAS: [Campo, string][] = [["codigo", "Código"], ["estudiante", "Estu
 
 export default function Estudiantes() {
   const navigate = useNavigate();
+  const { sesion } = useAuth();
+  const [registrando, setRegistrando] = useState(false);
+  const puedeRegistrar = !!sesion && PUEDEN_REGISTRAR.includes(sesion.rol);
   const theme = useTheme();
   const movil = useMediaQuery(theme.breakpoints.down("sm"));
   const [params, setParams] = useSearchParams();
@@ -61,7 +67,14 @@ export default function Estudiantes() {
   return (
     <>
       <Titulo antetitulo="Seguimiento" subtitulo={movil ? "Ordenados por nivel de riesgo: primero quienes necesitan más acompañamiento."
-        : "Primero quienes necesitan más acompañamiento. Usa los encabezados de la tabla para ordenar de otra forma."}>Estudiantes</Titulo>
+        : "Primero quienes necesitan más acompañamiento. Usa los encabezados de la tabla para ordenar de otra forma."}
+        accion={puedeRegistrar && <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => setRegistrando(true)}>Registrar estudiante</Button>}>
+        Estudiantes
+      </Titulo>
+      {registrando && sesion && (
+        <FormularioEstudiante abierto rol={sesion.rol} onCerrar={() => setRegistrando(false)}
+          onGuardado={(e) => navigate(`/estudiantes/${e.id}`)} />
+      )}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 1.5 }}>
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel id="filtro-aula-etiqueta">Aula</InputLabel>
