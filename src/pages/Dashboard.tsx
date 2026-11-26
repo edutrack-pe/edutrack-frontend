@@ -21,7 +21,10 @@ export default function Dashboard() {
   const puedeCalcular = sesion?.rol === "director" || sesion?.rol === "tutor" || sesion?.rol === "analista";
 
   if (resumen.isLoading || estudiantes.isLoading) return <Cargando filas={3} />;
-  if (resumen.error || !resumen.data) return <ErrorApi error={resumen.error} onReintentar={() => resumen.refetch()} />;
+  // Si falla la lista de estudiantes no se muestra el panorama: la lista prioritaria diría "nadie en riesgo" sin serlo.
+  if (resumen.error || estudiantes.error || !resumen.data) {
+    return <ErrorApi error={resumen.error ?? estudiantes.error} onReintentar={() => { resumen.refetch(); estudiantes.refetch(); }} />;
+  }
 
   const d = resumen.data;
   const lista = estudiantes.data ?? [];

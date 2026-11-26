@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
+import { reiniciarBackend, server } from "./msw";
 
 // jsdom no implementa estas APIs del navegador que usa la interfaz.
 Element.prototype.scrollIntoView = vi.fn();
@@ -20,10 +21,19 @@ export function simularPantalla(ancho: number) {
   }) as typeof window.matchMedia;
 }
 
+// Toda petición a la API pasa por MSW; una petición no prevista hace fallar la prueba.
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterAll(() => server.close());
+
 beforeEach(() => {
   localStorage.clear();
+  reiniciarBackend();
   simularPantalla(1280);
   window.alert = vi.fn();
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  server.resetHandlers();
+  server.events.removeAllListeners();
+});

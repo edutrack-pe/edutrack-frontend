@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "tsc -b --noEmit",
+    "lint": "tsc -b --noEmit && tsc -p e2e --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run lint && npm run test:coverage && npm run test:e2e && npm run build"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -25,15 +28,21 @@
     "recharts": "2.15.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.1",
+    "@playwright/test": "1.49.1",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.2.0",
     "@testing-library/user-event": "14.6.1",
+    "@types/node": "22.10.2",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
     "@vitejs/plugin-react": "4.3.4",
     "@vitest/coverage-v8": "3.0.9",
+    "axe-core": "4.10.2",
     "jsdom": "26.0.0",
+    "msw": "2.7.0",
+    "playwright-core": "1.49.1",
     "typescript": "5.7.2",
     "vite": "6.0.7",
     "vitest": "3.0.9"

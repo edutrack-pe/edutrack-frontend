@@ -14,6 +14,9 @@ import { Alertas, CargaCSV, ConfigRiesgo, Prediccion } from "./pages/Operaciones
 import PortalPadre from "./pages/PortalPadre";
 import { theme } from "./theme";
 
+/** Comportamiento de React Router v7 activado desde ya (evita las advertencias de migración en consola). */
+export const FUTURO_ROUTER = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
+
 export function crearQueryClient(reintentos = 1) {
   return new QueryClient({ defaultOptions: { queries: { retry: reintentos, refetchOnWindowFocus: false } } });
 }

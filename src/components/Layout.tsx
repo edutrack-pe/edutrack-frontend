@@ -7,14 +7,15 @@ import {
   ListItemButton, ListItemIcon, ListItemText, Paper, Toolbar, Tooltip, Typography, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { USE_MOCKS } from "../api/client";
 import { alertasApi } from "../api/endpoints";
 import { useAuth } from "../auth/AuthContext";
-import { ESPACIO, FUENTE_TITULO, iniciales, MARCA, MOVIMIENTO, RADIO, SEMAFORO, SOMBRA, TACTIL } from "../theme";
+import { ESPACIO, FUENTE_TITULO, iniciales, MARCA, MOVIMIENTO, OCULTO_VISUAL, RADIO, SEMAFORO, SOMBRA, TACTIL } from "../theme";
 import { Isotipo, Logo } from "./Logo";
 import { GRUPOS, MENU, NOMBRE_ROL, type ItemMenu } from "./menu";
+import { AvisoSinConexion, ID_CONTENIDO, SaltarAlContenido, useFocoAlNavegar } from "./navegacion";
 
 
 const ANCHO = 268;
@@ -36,11 +37,14 @@ function ItemNav({ m, pendientes, onClick }: { m: ItemMenu; pendientes: number; 
       <ListItemIcon>{m.icono}</ListItemIcon>
       <ListItemText primary={m.texto} primaryTypographyProps={{ fontSize: 14.5, fontWeight: 700 }} />
       {m.ruta === "/alertas" && pendientes > 0 && (
-        <Box component="span" aria-label={`${pendientes} sin leer`}
-          sx={{ minWidth: 22, height: 22, px: 0.75, borderRadius: RADIO.pill, bgcolor: SEMAFORO.rojo.color, color: MARCA.blanco,
-                fontSize: 12, fontWeight: 700, display: "grid", placeItems: "center" }}>
-          {pendientes}
-        </Box>
+        <>
+          <Box component="span" aria-hidden
+            sx={{ minWidth: 22, height: 22, px: 0.75, borderRadius: RADIO.pill, bgcolor: SEMAFORO.rojo.color, color: MARCA.blanco,
+                  fontSize: 12, fontWeight: 700, display: "grid", placeItems: "center" }}>
+            {pendientes}
+          </Box>
+          <Box component="span" sx={OCULTO_VISUAL}>, {pendientes} sin leer</Box>
+        </>
       )}
     </ListItemButton>
   );
@@ -64,6 +68,8 @@ export function Layout() {
   const enBarra = principales.find((m) => location.pathname.startsWith(m.ruta))?.ruta ?? "mas";
   const salir = () => { logout(); navigate("/login"); };
   const cerrar = () => setAbierto(false);
+  const contenido = useRef<HTMLElement>(null);
+  useFocoAlNavegar(contenido, actual?.texto ?? "Inicio");
 
   const menu = (
     <Box component="nav" aria-label="Menú principal" sx={{ display: "flex", flexDirection: "column", height: "100%", px: 1.5, pt: 3, pb: 1.5 }}>
@@ -78,9 +84,9 @@ export function Layout() {
           if (!delGrupo.length) return null;
           return (
             <Box key={g.clave} sx={{ mb: 2 }}>
-              <Typography variant="overline" component="p" sx={{ px: 1.5, color: MARCA.grafitoSuave }}>{g.titulo}</Typography>
+              <Typography variant="overline" component="p" sx={{ px: 1.5, color: MARCA.grafito }}>{g.titulo}</Typography>
               <List disablePadding>
-                {delGrupo.map((m) => <ItemNav key={m.ruta} m={m} pendientes={pendientes} onClick={cerrar} />)}
+                {delGrupo.map((m) => <li key={m.ruta}><ItemNav m={m} pendientes={pendientes} onClick={cerrar} /></li>)}
               </List>
             </Box>
           );
@@ -118,6 +124,7 @@ export function Layout() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100dvh" }}>
+      <SaltarAlContenido />
       {movil && (
         <AppBar position="fixed">
           <Toolbar sx={{ gap: 1, minHeight: { xs: 60 } }}>
@@ -145,9 +152,10 @@ export function Layout() {
         {menu}
       </Drawer>
 
-      <Box component="main" sx={{ flex: 1, minWidth: 0, px: ESPACIO.pagina, pt: { xs: 10, md: 5 },
-        pb: { xs: "calc(96px + env(safe-area-inset-bottom))", md: 8 } }}>
-        <Box sx={{ maxWidth: 1280, mx: "auto" }}><Outlet /></Box>
+      <Box component="main" id={ID_CONTENIDO} ref={contenido} tabIndex={-1}
+        sx={{ flex: 1, minWidth: 0, px: ESPACIO.pagina, pt: { xs: 10, md: 5 }, outline: "none",
+          pb: { xs: "calc(96px + env(safe-area-inset-bottom))", md: 8 } }}>
+        <Box sx={{ maxWidth: 1280, mx: "auto" }}><AvisoSinConexion /><Outlet /></Box>
       </Box>
 
       {movil && (

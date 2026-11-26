@@ -27,6 +27,7 @@ export const MARCA = {
   papel: "#ffffff",
   tinta: "#18211e",
   grafito: "#5b6762",
+  /** Solo para íconos y bordes (3,6:1 sobre blanco): no usar para texto, no llega a 4,5:1. */
   grafitoSuave: "#7d8984",
   linea: "#e6e2d9",
   lineaFuerte: "#d4cfc4",
@@ -62,6 +63,12 @@ export const TACTIL = 44;
 
 /** En pantallas táctiles, incluso los controles compactos llegan a 44 px. */
 export const TACTO_GRUESO = "@media (pointer: coarse)";
+
+/** Texto solo para lectores de pantalla (oculto a la vista, presente en el árbol de accesibilidad). */
+export const OCULTO_VISUAL = {
+  position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden",
+  clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0,
+} as const;
 
 export const MOVIMIENTO = { rapido: "120ms", base: "180ms", curva: "cubic-bezier(.2,.7,.2,1)" } as const;
 
@@ -132,10 +139,16 @@ export const theme = createTheme({
       styleOverrides: {
         body: { fontVariantNumeric: "tabular-nums", WebkitFontSmoothing: "antialiased" },
         "::selection": { backgroundColor: alpha(MARCA.pizarra, 0.16) },
+        // Sin el retraso de doble toque en celulares: el toque responde al instante.
+        "a, button, input, select, textarea, label, [role=button]": { touchAction: "manipulation" },
         "@media (prefers-reduced-motion: reduce)": {
           "*, *::before, *::after": { animation: "none !important", transition: "none !important", scrollBehavior: "auto !important" },
         },
       },
+    },
+    MuiTableSortLabel: {
+      // Encabezados ordenables: en pantallas táctiles el área de toque llega a 44 px de alto.
+      styleOverrides: { root: { [TACTO_GRUESO]: { minHeight: TACTIL } } },
     },
     MuiTypography: {
       defaultProps: { variantMapping: { metrica: "p", etiqueta: "span", auxiliar: "p", subtitle1: "p", subtitle2: "p" } },
@@ -275,6 +288,8 @@ export const theme = createTheme({
     },
     MuiDivider: { styleOverrides: { root: { borderColor: MARCA.linea } } },
     MuiBadge: { styleOverrides: { badge: { fontWeight: 700, border: `2px solid ${MARCA.papel}`, minWidth: 20, height: 20 } } },
+    // En pantallas táctiles toda la fila (control + etiqueta) llega a 44 px de alto.
+    MuiFormControlLabel: { styleOverrides: { root: { [TACTO_GRUESO]: { minHeight: TACTIL } } } },
     MuiSwitch: { styleOverrides: { switchBase: { "&.Mui-focusVisible": enfoque } } },
     MuiRadio: { styleOverrides: { root: { padding: 11 } } },
     MuiBottomNavigation: { styleOverrides: { root: { height: 64, backgroundColor: MARCA.papel } } },

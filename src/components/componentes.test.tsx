@@ -2,7 +2,9 @@ import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { Estudiante } from "../api/types";
 import { renderCon } from "../test/utils";
-import { iniciales } from "../theme";
+import { iniciales, MARCA, SEMAFORO } from "../theme";
+import { NOMBRE_ROL } from "./menu";
+import { fechaLarga } from "./panorama/Diagnostico";
 import { ErrorApi, MedidorRiesgo, SemaforoChip, Titulo, Vacio } from "./comunes";
 import { Isotipo, Logo } from "./Logo";
 import { FranjaSemaforo, MapaAula } from "./MapaAula";
@@ -12,10 +14,47 @@ const est = (id: number, riesgo: Estudiante["riesgo"], probabilidad: number | nu
   id, codigo: `A${id}`, nombres: `Nombre${id}`, apellidos: `Apellido${id}`, aula_id: 1, riesgo, probabilidad,
 });
 
+/** Contraste WCAG entre dos colores hex. */
+function contraste(a: string, b: string) {
+  const lum = (hex: string) => {
+    const [r, g, b_] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b_;
+  };
+  const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+  return (x + 0.05) / (y + 0.05);
+}
+
 describe("utilidades de tema", () => {
   it("obtiene las iniciales de un nombre", () => {
     expect(iniciales("Rosa  Delgado Pérez")).toBe("RD");
+    expect(iniciales("ana")).toBe("A");
     expect(iniciales("")).toBe("");
+  });
+
+  it("formatea fechas largas en español peruano sin desfase de zona horaria", () => {
+    expect(fechaLarga("2026-11-23")).toMatch(/^lunes,? 23 de noviembre$/);
+  });
+
+  it("nombra cada rol para la interfaz", () => {
+    expect(NOMBRE_ROL).toEqual({ director: "Dirección", docente: "Docente", tutor: "Tutor(a)", padre: "Apoderado(a)", analista: "Analista" });
+  });
+});
+
+describe("colores del semáforo", () => {
+  it.each(["verde", "amarillo", "rojo"] as const)("%s: el texto cumple contraste AA sobre su fondo y sobre blanco", (r) => {
+    expect(contraste(SEMAFORO[r].texto, SEMAFORO[r].fondo)).toBeGreaterThanOrEqual(4.5);
+    expect(contraste(SEMAFORO[r].texto, MARCA.papel)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("cada nivel tiene etiqueta textual propia (el color nunca va solo)", () => {
+    const etiquetas = Object.values(SEMAFORO).map((s) => s.etiqueta);
+    expect(new Set(etiquetas).size).toBe(3);
+    expect(Object.values(SEMAFORO).map((s) => s.corto)).toEqual(["Bajo", "Moderado", "Alto"]);
+  });
+
+  it("el blanco sobre el rojo de los contadores es legible (texto grande/negrita, ≥ 3:1)", () => {
+    expect(contraste(MARCA.blanco, SEMAFORO.rojo.color)).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -96,7 +135,8 @@ describe("MapaAula", () => {
     expect(within(aula).getByText("!")).toBeInTheDocument();
     expect(within(aula).getByText("sin calcular")).toBeInTheDocument();
 
-    await usuario.click(screen.getByRole("listitem", { name: "Nombre1 Apellido1: Riesgo alto (90%)" }));
+    await usuario.click(screen.getByRole("button", { name: "Nombre1 Apellido1: Riesgo alto (90%)" }));
+    expect(screen.getByRole("button", { name: "Nombre4 Apellido4: Sin calcular" })).toBeInTheDocument();
     expect(seleccionar).toHaveBeenCalledWith(1);
     await usuario.click(screen.getByRole("button", { name: "Reporte PDF de 3° A" }));
     expect(pdf).toHaveBeenCalledOnce();

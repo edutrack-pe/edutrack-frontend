@@ -155,3 +155,9 @@ dist/
 *.tsbuildinfo
 
 .vercel
+
+# Pruebas E2E (Playwright)
+dist-e2e/
+playwright-report/
+test-results/
+blob-report/

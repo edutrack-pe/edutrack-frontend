@@ -101,10 +101,12 @@ export default function Login() {
             sx={{ display: "grid", gap: 2.5, p: { sm: 3.5 }, bgcolor: { sm: MARCA.papel }, borderRadius: RADIO.xl,
                   border: { sm: `1px solid ${MARCA.linea}` }, boxShadow: { sm: SOMBRA.sm } }}>
             <TextField label="Correo institucional" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              autoComplete="username" inputMode="email" required autoFocus fullWidth error={!!error} placeholder="nombre@colegio.edu.pe" />
+              autoComplete="username" inputMode="email" required autoFocus fullWidth error={!!error} placeholder="nombre@colegio.edu.pe"
+              slotProps={{ htmlInput: { "aria-describedby": error ? "login-error" : undefined } }} />
             <TextField label="Contraseña" type={ver ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password" required fullWidth error={!!error}
               slotProps={{
+                htmlInput: { "aria-describedby": error ? "login-error" : undefined },
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
@@ -115,7 +117,7 @@ export default function Login() {
                   ),
                 },
               }} />
-            {error && <Alert severity="error" role="alert">{error}</Alert>}
+            {error && <Alert id="login-error" severity="error" role="alert">{error}</Alert>}
             <Button type="submit" variant="contained" size="large" fullWidth disabled={!!cargando}
               startIcon={cargando === "form" ? <CircularProgress size={18} color="inherit" /> : undefined}>
               {cargando === "form" ? "Ingresando…" : "Ingresar"}

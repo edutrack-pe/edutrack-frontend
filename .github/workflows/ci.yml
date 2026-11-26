@@ -7,6 +7,7 @@ on:
 
 jobs:
   build:
+    name: Lint, pruebas con cobertura y build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -16,7 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - name: Pruebas con cobertura (umbral 70 %)
+      - name: Pruebas unitarias y de integración con cobertura (umbral 80 %)
         run: npm run test:coverage
       - name: Publicar reporte de cobertura
         if: always()
@@ -25,3 +26,26 @@ jobs:
           name: cobertura-frontend
           path: coverage/
       - run: npm run build
+
+  e2e:
+    name: E2E y accesibilidad (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Pruebas end-to-end (celular, tablet y escritorio)
+        run: npm run test:e2e
+      - name: Publicar reporte de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/

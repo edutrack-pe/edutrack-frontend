@@ -2,8 +2,9 @@ import { defineConfig, mergeConfig } from "vitest/config";
 import viteConfig from "./vite.config";
 
 /**
- * Pruebas del frontend (DoD y Tabla 35: cobertura > 70 %).
- * Se ejecutan contra el adaptador de datos simulados (VITE_USE_MOCKS=true), sin backend.
+ * Pruebas unitarias y de integración del frontend (DoD y Tabla 35).
+ * Usan el cliente HTTP real (VITE_USE_MOCKS=false) y MSW intercepta las peticiones a la API,
+ * así se prueban también las cabeceras, los códigos de estado y los errores de red.
  */
 export default mergeConfig(
   viteConfig,
@@ -11,16 +12,19 @@ export default mergeConfig(
     test: {
       environment: "jsdom",
       setupFiles: ["./src/test/setup.ts"],
-      env: { VITE_USE_MOCKS: "true", VITE_API_URL: "http://api.test/api" },
+      env: { VITE_USE_MOCKS: "false", VITE_API_URL: "http://api.test/api" },
+      include: ["src/**/*.test.{ts,tsx}"],
       css: false,
-      testTimeout: 15_000,
+      // Las pantallas completas en jsdom con instrumentación de cobertura pueden superar los 15 s en CI.
+      testTimeout: 30_000,
       restoreMocks: true,
       coverage: {
         provider: "v8",
         reporter: ["text", "html", "lcov", "json-summary"],
         include: ["src/**/*.{ts,tsx}"],
-        exclude: ["src/main.tsx", "src/test/**", "src/**/*.test.{ts,tsx}", "src/api/types.ts", "src/vite-env.d.ts"],
-        thresholds: { lines: 70, statements: 70, functions: 70, branches: 70 },
+        // Fuera de la medición: arranque, utilidades de prueba, datos simulados (mocks) y tipos/declaraciones sin lógica.
+        exclude: ["src/main.tsx", "src/test/**", "src/mocks/**", "src/**/*.test.{ts,tsx}", "src/api/types.ts", "src/**/*.d.ts"],
+        thresholds: { lines: 80, statements: 80, functions: 80, branches: 80 },
       },
     },
   }),

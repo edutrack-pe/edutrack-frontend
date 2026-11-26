@@ -5,7 +5,7 @@ import {
   ListItemText, MenuItem, Select, Slider, Stack, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mensajeError } from "../api/client";
 import { alertasApi, aulasApi, ingestaApi, riesgoApi } from "../api/endpoints";
@@ -16,6 +16,7 @@ export function CargaCSV() {
   const [tipo, setTipo] = useState<"notas" | "asistencias">("notas");
   const [archivo, setArchivo] = useState<File | null>(null);
   const subir = useMutation({ mutationFn: () => ingestaApi.subir(tipo, archivo!) });
+  const selector = useRef<HTMLInputElement>(null);
 
   return (
     <>
@@ -23,18 +24,19 @@ export function CargaCSV() {
       <Card sx={{ maxWidth: 640 }}>
         <CardContent>
           <Stack spacing={2}>
-            <ToggleButtonGroup exclusive value={tipo} onChange={(_, v) => v && setTipo(v)} size="small">
+            <ToggleButtonGroup exclusive aria-label="Tipo de carga" value={tipo} onChange={(_, v) => v && setTipo(v)} size="small">
               <ToggleButton value="notas">Notas</ToggleButton>
               <ToggleButton value="asistencias">Asistencias</ToggleButton>
             </ToggleButtonGroup>
             <Alert severity="info">
               Usa la plantilla oficial. <a href={ingestaApi.plantillaUrl(tipo)} download>Descargar plantilla de {tipo}</a>
             </Alert>
-            <Button component="label" variant="outlined" startIcon={<UploadFileIcon />}
+            {/* Botón real (no <label>) para que el selector de archivo sea operable y anunciado correctamente. */}
+            <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => selector.current?.click()}
               sx={{ minHeight: 88, borderStyle: "dashed", borderWidth: 1.5, justifyContent: "center", "&:hover": { borderStyle: "dashed", borderWidth: 1.5 } }}>
               {archivo ? archivo.name : "Seleccionar archivo (.csv, .xlsx)"}
-              <input hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
             </Button>
+            <input ref={selector} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
             <Button variant="contained" size="large" disabled={!archivo || subir.isPending} onClick={() => subir.mutate()}>
               {subir.isPending ? "Importando…" : "Importar"}
             </Button>
@@ -130,7 +132,7 @@ export function Alertas() {
               <ListItem key={a.id} divider disablePadding
                 secondaryAction={!a.leida && <Button size="small" onClick={() => leer.mutate(a.id)}>Marcar leída</Button>}>
                 <ListItemButton onClick={() => navigate(`/estudiantes/${a.estudiante_id}`)} sx={{ pr: { xs: 15, sm: 18 }, py: 1.5, gap: 1.5, alignItems: "flex-start" }}>
-                  <Box aria-label={a.leida ? "Leída" : "Sin leer"} sx={{ width: 10, height: 10, mt: 0.75, borderRadius: "50%", flexShrink: 0,
+                  <Box role="img" aria-label={a.leida ? "Leída" : "Sin leer"} sx={{ width: 10, height: 10, mt: 0.75, borderRadius: "50%", flexShrink: 0,
                     bgcolor: a.leida ? "transparent" : SEMAFORO.rojo.color, border: a.leida ? `1.5px solid ${MARCA.sinCalcular}` : "none" }} />
                   <ListItemText
                     primary={a.mensaje}
@@ -167,6 +169,8 @@ export function ConfigRiesgo() {
           <Typography gutterBottom>Probabilidad de riesgo que el modelo debe superar para cada color:</Typography>
           <Box sx={{ px: 2, pt: 4 }}>
             <Slider value={valores} min={0.05} max={0.95} step={0.05} disableSwap valueLabelDisplay="on"
+              getAriaLabel={(i) => (i === 0 ? "Umbral de riesgo moderado" : "Umbral de riesgo alto")}
+              getAriaValueText={(v) => `${Math.round(v * 100)}%`}
               valueLabelFormat={(v) => `${Math.round(v * 100)}%`} onChange={(_, v) => setValores(v as number[])} />
           </Box>
           <Stack spacing={0.5} sx={{ my: 2 }}>

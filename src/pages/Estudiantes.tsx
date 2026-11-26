@@ -1,12 +1,12 @@
 import {
   Avatar, Card, FormControl, InputLabel, List, ListItemButton, ListItemText, MenuItem, Select, Stack, Table,
-  TableBody, TableCell, TableHead, TableRow, TextField, useMediaQuery, useTheme,
+  TableBody, TableCell, TableHead, TableRow, TableSortLabel, TextField, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { aulasApi, estudiantesApi } from "../api/endpoints";
-import type { Riesgo } from "../api/types";
+import type { Estudiante, Riesgo } from "../api/types";
 import SearchIcon from "@mui/icons-material/SearchRounded";
 import PeopleIcon from "@mui/icons-material/PeopleAltOutlined";
 import { InputAdornment, Typography } from "@mui/material";
@@ -14,6 +14,19 @@ import { Cargando, ErrorApi, SemaforoChip, Titulo, Vacio } from "../components/c
 import { iniciales, MARCA, SEMAFORO } from "../theme";
 
 const ORDEN: Record<string, number> = { rojo: 0, amarillo: 1, verde: 2 };
+
+type Campo = "codigo" | "estudiante" | "aula" | "riesgo";
+type Direccion = "asc" | "desc";
+
+/** Por riesgo, "asc" significa primero quienes más acompañamiento necesitan (alto y mayor probabilidad). */
+function comparar(a: Estudiante, b: Estudiante, campo: Campo, aula: (id: number) => string): number {
+  if (campo === "codigo") return a.codigo.localeCompare(b.codigo, "es");
+  if (campo === "estudiante") return `${a.apellidos} ${a.nombres}`.localeCompare(`${b.apellidos} ${b.nombres}`, "es");
+  if (campo === "aula") return aula(a.aula_id).localeCompare(aula(b.aula_id), "es", { numeric: true });
+  return (ORDEN[a.riesgo ?? ""] ?? 3) - (ORDEN[b.riesgo ?? ""] ?? 3) || (b.probabilidad ?? 0) - (a.probabilidad ?? 0);
+}
+
+const COLUMNAS: [Campo, string][] = [["codigo", "Código"], ["estudiante", "Estudiante"], ["aula", "Aula"], ["riesgo", "Riesgo"]];
 
 export default function Estudiantes() {
   const navigate = useNavigate();
@@ -26,23 +39,29 @@ export default function Estudiantes() {
     riesgoInicial === "rojo" || riesgoInicial === "amarillo" || riesgoInicial === "verde" ? riesgoInicial : "todos",
   );
   const [buscar, setBuscar] = useState("");
+  const [orden, setOrden] = useState<{ campo: Campo; dir: Direccion }>({ campo: "riesgo", dir: "asc" });
 
   const aulas = useQuery({ queryKey: ["aulas"], queryFn: aulasApi.listar });
   const { data, isLoading, error } = useQuery({ queryKey: ["estudiantes", aula], queryFn: () => estudiantesApi.listar(aula) });
 
+  const nombreAula = useCallback((id: number) => aulas.data?.find((a) => a.id === id)?.nombre ?? String(id), [aulas.data]);
+
   const filtrados = useMemo(() => {
-    const texto = buscar.toLowerCase();
+    const texto = buscar.trim().toLowerCase();
+    const signo = orden.dir === "asc" ? 1 : -1;
     return (data ?? [])
       .filter((e) => riesgo === "todos" || e.riesgo === riesgo)
       .filter((e) => `${e.nombres} ${e.apellidos} ${e.codigo}`.toLowerCase().includes(texto))
-      .sort((a, b) => (ORDEN[a.riesgo ?? ""] ?? 3) - (ORDEN[b.riesgo ?? ""] ?? 3) || (b.probabilidad ?? 0) - (a.probabilidad ?? 0));
-  }, [data, riesgo, buscar]);
+      .sort((a, b) => signo * comparar(a, b, orden.campo, nombreAula));
+  }, [data, riesgo, buscar, orden, nombreAula]);
 
-  const nombreAula = (id: number) => aulas.data?.find((a) => a.id === id)?.nombre ?? id;
+  const ordenarPor = (campo: Campo) =>
+    setOrden((o) => ({ campo, dir: o.campo === campo && o.dir === "asc" ? "desc" : "asc" }));
 
   return (
     <>
-      <Titulo antetitulo="Seguimiento" subtitulo="Ordenados por nivel de riesgo: primero quienes necesitan más acompañamiento.">Estudiantes</Titulo>
+      <Titulo antetitulo="Seguimiento" subtitulo={movil ? "Ordenados por nivel de riesgo: primero quienes necesitan más acompañamiento."
+        : "Primero quienes necesitan más acompañamiento. Usa los encabezados de la tabla para ordenar de otra forma."}>Estudiantes</Titulo>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mb: 1.5 }}>
         <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel id="filtro-aula-etiqueta">Aula</InputLabel>
@@ -75,7 +94,8 @@ export default function Estudiantes() {
             filtrados.length ? (
               <List disablePadding>
                 {filtrados.map((e) => (
-                  <ListItemButton key={e.id} divider onClick={() => navigate(`/estudiantes/${e.id}`)} sx={{ py: 1.25, gap: 1.5 }}>
+                  <li key={e.id}>
+                  <ListItemButton divider onClick={() => navigate(`/estudiantes/${e.id}`)} sx={{ py: 1.25, gap: 1.5 }}>
                     <Avatar sx={{ width: 36, height: 36, fontSize: 13, fontWeight: 700,
                       bgcolor: e.riesgo ? SEMAFORO[e.riesgo].fondo : MARCA.pizarraTenue, color: e.riesgo ? SEMAFORO[e.riesgo].texto : MARCA.pizarra }}>
                       {iniciales(`${e.nombres} ${e.apellidos}`)}
@@ -84,6 +104,7 @@ export default function Estudiantes() {
                       primaryTypographyProps={{ fontWeight: 700, noWrap: true }} sx={{ minWidth: 0 }} />
                     <SemaforoChip riesgo={e.riesgo} corto />
                   </ListItemButton>
+                  </li>
                 ))}
               </List>
             ) : <Vacio icono={<PeopleIcon />} titulo="Sin resultados" texto="No hay estudiantes con esos filtros." />
@@ -91,10 +112,14 @@ export default function Estudiantes() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Código</TableCell>
-                  <TableCell>Estudiante</TableCell>
-                  <TableCell>Aula</TableCell>
-                  <TableCell>Riesgo</TableCell>
+                  {COLUMNAS.map(([campo, titulo]) => (
+                    <TableCell key={campo} sortDirection={orden.campo === campo ? orden.dir : false}>
+                      <TableSortLabel active={orden.campo === campo} direction={orden.campo === campo ? orden.dir : "asc"}
+                        onClick={() => ordenarPor(campo)}>
+                        {titulo}
+                      </TableSortLabel>
+                    </TableCell>
+                  ))}
                 </TableRow>
               </TableHead>
               <TableBody>

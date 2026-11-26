@@ -71,14 +71,28 @@ src/
 | Comando | Qué hace |
 |---|---|
 | `npm run dev` | Servidor de desarrollo |
-| `npm run lint` | Verificación de tipos (TypeScript) |
+| `npm run lint` | Verificación de tipos (TypeScript) de la app y de las pruebas E2E |
 | `npm run build` | Build de producción en `dist/` |
-| `npm test` | Pruebas unitarias y de integración (Vitest + Testing Library) |
-| `npm run test:coverage` | Pruebas con reporte de cobertura en `coverage/` (falla si baja del 70 %) |
+| `npm test` | Pruebas unitarias y de integración (Vitest + Testing Library + MSW) |
+| `npm run test:watch` | Vitest en modo observador |
+| `npm run test:coverage` | Pruebas con cobertura en `coverage/` (falla si baja del 80 % en líneas, funciones, ramas o sentencias) |
+| `npm run test:e2e` | Pruebas end-to-end con Playwright en celular (390 px), tablet (768 px) y escritorio (1280 px) |
+| `npm run test:e2e:ui` | Playwright en modo interactivo |
+| `npm run test:all` | Lint, cobertura, E2E y build, en ese orden |
 
 ## Pruebas
 
-Las pruebas corren contra los datos simulados (`VITE_USE_MOCKS=true`), sin backend. Cubren el login y el control de acceso por rol (HU01), la carga masiva (HU03), el cálculo de riesgo (HU04), el panorama (HU05), las alertas (HU06), la ficha, el portal del apoderado, las actas, la encuesta, los umbrales y la vista móvil. El CI de GitHub Actions las ejecuta en cada push y Pull Request y exige más del 70 % de cobertura, como pide la Definition of Done.
+**Unitarias e integración (Vitest).** Usan el cliente HTTP real (`VITE_USE_MOCKS=false`) y [MSW](https://mswjs.io) intercepta las peticiones: así se prueban cabeceras, códigos de estado (401, 403, 404, 422, 500) y caídas de red sin backend. Las respuestas salen de `src/mocks/datos.ts`, un backend simulado que copia los permisos y mensajes de error de `edutrack-backend`. Para forzar un error en una prueba: `responderError("get", "/estudiantes", 500, "Error interno")` o `cortarRed("post", "/actas")` (ver `src/test/msw.ts`). `src/pages/accesibilidad.test.tsx` ejecuta axe-core en todas las pantallas (sin contraste: jsdom no dibuja).
+
+**End-to-end (Playwright).** `npm run test:e2e` compila la app, la sirve con `vite preview` en el puerto 4174 y simula la API con el mismo backend simulado (`e2e/fixtures.ts`). Cada prueba falla si el navegador escribe errores en consola. La primera vez hay que instalar el navegador:
+
+```bash
+npx playwright install chromium
+```
+
+Cubre: login de los 5 roles y recorrido de todas sus rutas, ficha desde el panorama, una acción principal por rol (PDF, alerta leída, carga CSV, umbrales, encuesta), redirecciones sin permiso, desborde horizontal, axe con contraste en Login, Panorama, Estudiantes, Ficha y Portal, orden de tabulación, foco visible y tamaño táctil mínimo de 44 px en celular.
+
+El CI de GitHub Actions ejecuta ambos niveles en cada push y Pull Request.
 
 ## Docker
 

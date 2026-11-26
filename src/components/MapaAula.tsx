@@ -7,7 +7,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { Box, ButtonBase, IconButton, Tooltip, Typography } from "@mui/material";
 import { keyframes } from "@mui/system";
 import type { Estudiante, Riesgo } from "../api/types";
-import { FUENTE_TITULO, MARCA, MOVIMIENTO, RADIO, SEMAFORO, SOMBRA } from "../theme";
+import { FUENTE_TITULO, MARCA, MOVIMIENTO, RADIO, SEMAFORO, SOMBRA, TACTIL, TACTO_GRUESO } from "../theme";
 
 const aparecer = keyframes`from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; }`;
 
@@ -51,22 +51,25 @@ export function MapaAula({ nombre, estudiantes, onSeleccionar, onPdf, retraso = 
       </Box>
 
       {/* Carpetas */}
-      <Box role="list" sx={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 0.75 }}>
+      {/* En pantallas táctiles las columnas se ajustan al ancho para que cada carpeta mida al menos 44 px. */}
+      <Box role="list" sx={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 0.75,
+        [TACTO_GRUESO]: { gridTemplateColumns: `repeat(auto-fill, minmax(${TACTIL}px, 1fr))` } }}>
         {estudiantes.map((e, i) => {
           const r = e.riesgo;
           const etiqueta = r ? SEMAFORO[r].etiqueta : "Sin calcular";
           const prob = e.probabilidad != null ? ` (${Math.round(e.probabilidad * 100)}%)` : "";
           return (
-            <Tooltip key={e.id} arrow title={
-              <Box>
+            <Box key={e.id} role="listitem" sx={{ display: "grid" }}>
+            <Tooltip arrow title={
+              <Box aria-hidden>
                 <Box sx={{ fontWeight: 700 }}>{e.apellidos}, {e.nombres}</Box>
                 <Box sx={{ opacity: 0.85 }}>{etiqueta}{prob}</Box>
               </Box>
             }>
-              <ButtonBase role="listitem" onClick={() => onSeleccionar(e.id)}
+              <ButtonBase onClick={() => onSeleccionar(e.id)}
                 aria-label={`${e.nombres} ${e.apellidos}: ${etiqueta}${prob}`}
                 sx={{
-                  ...estiloCarpeta(r), aspectRatio: { xs: "1", sm: "1.2" }, minHeight: { xs: 44, sm: 0 }, borderRadius: RADIO.xs, fontSize: 13, fontWeight: 800,
+                  ...estiloCarpeta(r), aspectRatio: { xs: "1", sm: "1.2" }, minHeight: { xs: TACTIL, sm: 0 }, [TACTO_GRUESO]: { minHeight: TACTIL, aspectRatio: "auto" }, borderRadius: RADIO.xs, fontSize: 13, fontWeight: 800,
                   animation: `${aparecer} .28s ${MOVIMIENTO.curva} both`, animationDelay: `${retraso + i * 10}ms`,
                   "&:hover": { transform: "translateY(-2px)", boxShadow: SOMBRA.sm },
                   transition: `transform ${MOVIMIENTO.rapido}, box-shadow ${MOVIMIENTO.rapido}`,
@@ -74,6 +77,7 @@ export function MapaAula({ nombre, estudiantes, onSeleccionar, onPdf, retraso = 
                 {r === "rojo" ? "!" : ""}
               </ButtonBase>
             </Tooltip>
+            </Box>
           );
         })}
       </Box>
@@ -108,7 +112,7 @@ export function FranjaSemaforo({ verde, amarillo, rojo, sinCalcular }: { verde: 
     <Box role="img" aria-label={tramos.map((t) => `${t.n} ${t.etiqueta}`).join(", ")}>
       <Box sx={{ display: "flex", gap: "2px", height: 14 }}>
         {tramos.map((t, i) => (
-          <Tooltip key={t.clave} title={`${t.n} estudiantes ${t.etiqueta} (${Math.round((t.n / total) * 100)}%)`}>
+          <Tooltip key={t.clave} describeChild title={`${t.n} estudiantes ${t.etiqueta} (${Math.round((t.n / total) * 100)}%)`}>
             <Box sx={{ flex: t.n, bgcolor: t.color, minWidth: 6,
               borderRadius: `${i === 0 ? 4 : 0}px ${i === tramos.length - 1 ? 4 : 0}px ${i === tramos.length - 1 ? 4 : 0}px ${i === 0 ? 4 : 0}px` }} />
           </Tooltip>

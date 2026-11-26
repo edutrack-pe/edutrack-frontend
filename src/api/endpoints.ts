@@ -1,3 +1,4 @@
+import type { AxiosError } from "axios";
 import { api, USE_MOCKS } from "./client";
 import type {
   Acta, Alerta, Aula, ConfigRiesgo, Dashboard, Encuesta, Estudiante, Evento, Ficha,
@@ -23,6 +24,27 @@ export const estudiantesApi = {
   ficha: (id: number) => api.get<Ficha>(`/estudiantes/${id}`).then((r) => r.data),
 };
 
+/** Con `responseType: "blob"` el error de la API llega como Blob: se convierte a JSON para conservar su `detail`. */
+async function leerErrorBlob(error: unknown): Promise<never> {
+  const respuesta = (error as AxiosError).response;
+  if (respuesta?.data instanceof Blob) {
+    const blob = respuesta.data;
+    try {
+      // FileReader (y no Blob.text()) para funcionar también en navegadores antiguos y en jsdom.
+      const texto = await new Promise<string>((ok, mal) => {
+        const lector = new FileReader();
+        lector.onload = () => ok(String(lector.result));
+        lector.onerror = () => mal(lector.error);
+        lector.readAsText(blob);
+      });
+      respuesta.data = JSON.parse(texto);
+    } catch {
+      // cuerpo no JSON: se deja como está y se mostrará el mensaje genérico
+    }
+  }
+  throw error;
+}
+
 export const riesgoApi = {
   dashboard: () => api.get<Dashboard>("/dashboard/resumen").then((r) => r.data),
   predecirAula: (aulaId: number, bimestre: number) =>
@@ -34,7 +56,7 @@ export const riesgoApi = {
       window.alert("En la demo no se genera el PDF. Está disponible al conectar el backend de EduTrack.");
       return;
     }
-    const r =await api.get(`/reportes/aula/${aulaId}/pdf`, { responseType: "blob" });
+    const r = await api.get(`/reportes/aula/${aulaId}/pdf`, { responseType: "blob" }).catch(leerErrorBlob);
     const url = URL.createObjectURL(r.data as Blob);
     const a = document.createElement("a");
     a.href = url;

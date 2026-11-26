@@ -56,11 +56,13 @@ export function Agenda({ eventos }: { eventos: Evento[] }) {
             const finDeSemana = d.getDay() === 0 || d.getDay() === 6;
             return (
               <Box component="li" key={i} sx={{ borderTop: `3px solid ${i === 0 ? MARCA.pizarra : ev.length ? MARCA.pizarraClara : MARCA.linea}`,
-                pt: 1, opacity: finDeSemana && !ev.length ? 0.5 : 1, minWidth: 0 }}>
+                pt: 1, minWidth: 0 }}>
                 <Typography variant="auxiliar" sx={{ textTransform: "capitalize", fontWeight: i === 0 ? 700 : 400, color: i === 0 ? MARCA.pizarra : undefined }}>
                   {i === 0 ? "Hoy" : diaCorto(d)}
                 </Typography>
-                <Typography sx={{ fontFamily: FUENTE_TITULO, fontWeight: 800, fontSize: 22, lineHeight: 1.1 }}>{d.getDate()}</Typography>
+                {/* El fin de semana sin evaluaciones se atenúa con un tono de texto que mantiene contraste AA (antes: opacidad 0,5 → 2,1:1). */}
+                <Typography sx={{ fontFamily: FUENTE_TITULO, fontWeight: 800, fontSize: 22, lineHeight: 1.1,
+                  color: finDeSemana && !ev.length ? MARCA.grafito : undefined }}>{d.getDate()}</Typography>
                 <Stack spacing={0.75} sx={{ mt: 1 }}>{ev.map((e) => <Evaluacion key={e.id} e={e} />)}</Stack>
               </Box>
             );

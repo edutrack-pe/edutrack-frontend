@@ -4,7 +4,7 @@ import {
   List, ListItem, ListItemText, MenuItem, Radio, RadioGroup, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { mensajeError } from "../api/client";
 import { actasApi, calendarioApi, encuestasApi, estudiantesApi } from "../api/endpoints";
 import { Cargando, ErrorApi, Titulo } from "../components/comunes";
@@ -12,10 +12,11 @@ import { Cargando, ErrorApi, Titulo } from "../components/comunes";
 function Escala({ label, value, onChange, opciones }: {
   label: string; value: number; onChange: (v: number) => void; opciones: [number, string][];
 }) {
+  const id = useId();
   return (
-    <FormControl>
-      <FormLabel>{label}</FormLabel>
-      <RadioGroup row value={value} onChange={(e) => onChange(Number(e.target.value))}>
+    <FormControl component="fieldset">
+      <FormLabel component="legend" id={id}>{label}</FormLabel>
+      <RadioGroup row aria-labelledby={id} value={value} onChange={(e) => onChange(Number(e.target.value))}>
         {opciones.map(([v, t]) => <FormControlLabel key={v} value={v} control={<Radio />} label={t} />)}
       </RadioGroup>
     </FormControl>
@@ -25,16 +26,28 @@ function Escala({ label, value, onChange, opciones }: {
 export function Encuesta() {
   const hijos = useQuery({ queryKey: ["estudiantes"], queryFn: () => estudiantesApi.listar() });
   const [form, setForm] = useState({
-    estudiante_id: 0, horas_estudio: 5, nivel_edu_padres: 2, acceso_tecnologia: true,
+    estudiante_id: 0, nivel_edu_padres: 2, acceso_tecnologia: true,
     tiempo_disponible_padres: 2, comunicacion_familiar: 2,
   });
+  // Las horas se guardan como texto para no convertir en silencio un campo vacío en 0.
+  const [horas, setHoras] = useState("5");
+  const horasValidas = /^\d{1,2}$/.test(horas.trim()) && Number(horas) <= 60;
+  // El error aparece al salir del campo o al intentar enviar, no mientras se escribe; desaparece apenas se corrige.
+  const [revisarHoras, setRevisarHoras] = useState(false);
+  const errorHoras = revisarHoras && !horasValidas;
+  const campoHoras = useRef<HTMLInputElement>(null);
   const enviar = useMutation({ mutationFn: encuestasApi.enviar });
   const estudianteId = form.estudiante_id || hijos.data?.[0]?.id || 0;
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    enviar.mutate({ ...form, estudiante_id: estudianteId });
+    if (!horasValidas) {
+      setRevisarHoras(true);
+      campoHoras.current?.focus();
+      return;
+    }
+    enviar.mutate({ ...form, horas_estudio: Number(horas), estudiante_id: estudianteId });
   };
 
   if (hijos.isLoading) return <Cargando />;
@@ -47,7 +60,8 @@ export function Encuesta() {
       </Titulo>
       <Card sx={{ maxWidth: 720 }}>
         <CardContent>
-          <Box component="form" onSubmit={submit}>
+          {/* noValidate: los mensajes son los propios (en español, junto al campo), no la burbuja del navegador. */}
+          <Box component="form" onSubmit={submit} noValidate>
             <Stack spacing={3}>
               {(hijos.data?.length ?? 0) > 1 && (
                 <FormControl>
@@ -57,8 +71,10 @@ export function Encuesta() {
                   </Select>
                 </FormControl>
               )}
-              <TextField type="number" label="¿Cuántas horas a la semana estudia en casa?" value={form.horas_estudio}
-                inputProps={{ min: 0, max: 60 }} onChange={(e) => set("horas_estudio", Number(e.target.value))} />
+              <TextField type="number" label="¿Cuántas horas a la semana estudia en casa?" value={horas} required inputRef={campoHoras}
+                error={errorHoras} helperText={errorHoras ? "Escriba un número entero entre 0 y 60, por ejemplo 6" : "Entre 0 y 60 horas"}
+                slotProps={{ htmlInput: { min: 0, max: 60, inputMode: "numeric" } }}
+                onBlur={() => setRevisarHoras(true)} onChange={(e) => setHoras(e.target.value)} />
               <Escala label="Nivel educativo más alto de los padres" value={form.nivel_edu_padres}
                 onChange={(v) => set("nivel_edu_padres", v)} opciones={[[1, "Primaria"], [2, "Secundaria"], [3, "Superior"]]} />
               <FormControlLabel control={<Switch checked={form.acceso_tecnologia} onChange={(e) => set("acceso_tecnologia", e.target.checked)} />}
@@ -86,6 +102,10 @@ export function Actas() {
   const [estudianteId, setEstudianteId] = useState<number | "">("");
   const [acuerdos, setAcuerdos] = useState("");
   const [compromisos, setCompromisos] = useState("");
+  const [revisarAcuerdos, setRevisarAcuerdos] = useState(false);
+  const acuerdosValidos = acuerdos.trim().length >= 3;
+  const errorAcuerdos = revisarAcuerdos && !acuerdosValidos;
+  const campoAcuerdos = useRef<HTMLTextAreaElement>(null);
   const actas = useQuery({
     queryKey: ["actas", estudianteId],
     queryFn: () => actasApi.listar(Number(estudianteId)),
@@ -98,9 +118,18 @@ export function Actas() {
     onSuccess: () => {
       setAcuerdos("");
       setCompromisos("");
+      setRevisarAcuerdos(false);
       qc.invalidateQueries({ queryKey: ["actas", estudianteId] });
     },
   });
+  const guardar = () => {
+    if (!acuerdosValidos) {
+      setRevisarAcuerdos(true);
+      campoAcuerdos.current?.focus();
+      return;
+    }
+    crear.mutate();
+  };
 
   return (
     <>
@@ -118,11 +147,14 @@ export function Actas() {
               <CardContent>
                 <Stack spacing={2}>
                   <Typography variant="h6">Nueva acta</Typography>
-                  <TextField label="Acuerdos" multiline minRows={3} value={acuerdos} onChange={(e) => setAcuerdos(e.target.value)} />
+                  <TextField label="Acuerdos" multiline minRows={3} value={acuerdos} required inputRef={campoAcuerdos}
+                    error={errorAcuerdos} helperText={errorAcuerdos ? "Escribe al menos 3 caracteres con el acuerdo de la reunión" : "Qué se acordó en la reunión"}
+                    onBlur={() => acuerdos && setRevisarAcuerdos(true)} onChange={(e) => setAcuerdos(e.target.value)} />
                   <TextField label="Compromisos del apoderado" multiline minRows={2} value={compromisos} onChange={(e) => setCompromisos(e.target.value)} />
-                  <Button variant="contained" disabled={acuerdos.length < 3 || crear.isPending} onClick={() => crear.mutate()} sx={{ alignSelf: { sm: "flex-start" } }}>
+                  <Button variant="contained" disabled={crear.isPending} onClick={guardar} sx={{ alignSelf: { sm: "flex-start" } }}>
                     {crear.isPending ? "Guardando…" : "Guardar acta"}
                   </Button>
+                  {crear.isSuccess && !acuerdos && <Alert severity="success">Acta guardada. Ya aparece en el historial.</Alert>}
                   {crear.isError && <Alert severity="error">{mensajeError(crear.error)}</Alert>}
                 </Stack>
               </CardContent>

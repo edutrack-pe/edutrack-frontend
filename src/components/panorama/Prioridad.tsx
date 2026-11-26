@@ -12,7 +12,7 @@ function Fila({ e, puesto, aula, onClick }: { e: Estudiante; puesto: number; aul
   return (
     <ListItemButton onClick={onClick} aria-label={`${e.nombres} ${e.apellidos}, aula ${aula}, probabilidad ${p}%`}
       sx={{ borderRadius: RADIO.md, px: 1, py: 1.1, gap: 1.5, alignItems: "center" }}>
-      <Typography aria-hidden sx={{ width: 22, fontSize: 13, fontWeight: 700, color: MARCA.grafitoSuave, textAlign: "right", flexShrink: 0 }}>
+      <Typography aria-hidden sx={{ width: 22, fontSize: 13, fontWeight: 700, color: MARCA.grafito, textAlign: "right", flexShrink: 0 }}>
         {puesto}
       </Typography>
       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -45,7 +45,7 @@ export function Prioridad({ prioridad, nombreAula, onAbrir, onVerTodos }: {
       {prioridad.length ? (
         <List disablePadding sx={{ mx: -1 }}>
           {prioridad.slice(0, VISIBLES).map((e, i) => (
-            <Fila key={e.id} e={e} puesto={i + 1} aula={nombreAula(e.aula_id)} onClick={() => onAbrir(e.id)} />
+            <li key={e.id}><Fila e={e} puesto={i + 1} aula={nombreAula(e.aula_id)} onClick={() => onAbrir(e.id)} /></li>
           ))}
         </List>
       ) : (
