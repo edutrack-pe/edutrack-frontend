@@ -59,7 +59,7 @@ export function App() {
           <Route element={<ProtectedRoute roles={["tutor"]} />}>
             <Route path="/actas" element={<Actas />} />
           </Route>
-          <Route element={<ProtectedRoute roles={["docente", "analista", "director"]} />}>
+          <Route element={<ProtectedRoute roles={["docente"]} />}>
             <Route path="/carga" element={<CargaCSV />} />
           </Route>
           <Route element={<ProtectedRoute roles={["analista", "director", "tutor"]} />}>

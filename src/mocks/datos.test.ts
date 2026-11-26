@@ -56,7 +56,7 @@ describe("autenticación y permisos", () => {
     ["get", "/dashboard/resumen", ["director", "tutor", "analista", "docente"], ["padre"]],
     ["get", "/alertas", ["tutor", "director"], ["docente", "analista", "padre"]],
     ["get", "/config/riesgo", ["analista", "director"], ["tutor", "docente", "padre"]],
-    ["post", "/ingesta/csv", ["docente", "analista", "director"], ["tutor", "padre"]],
+    ["post", "/ingesta/csv", ["docente"], ["director", "analista", "tutor", "padre"]],
     ["get", "/reportes/aula/1/pdf", ["director", "tutor"], ["docente", "analista", "padre"]],
     ["get", "/actas", ["tutor", "director"], ["docente", "analista", "padre"]],
   ])("%s %s respeta los roles del backend", (metodo, ruta, permitidos, denegados) => {

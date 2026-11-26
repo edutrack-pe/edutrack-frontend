@@ -7,10 +7,10 @@ import { expect, ingresar, irA, pantallaLista, sinDesbordeHorizontal, test } fro
  * `menu.tsx`, para que la prueba detecte si el menú cambia sin querer (y porque los íconos MUI no cargan en Node).
  */
 const RUTAS: Record<Rol, [string, string][]> = {
-  director: [["Estudiantes", "/estudiantes"], ["Alertas", "/alertas"], ["Calendario", "/calendario"], ["Cargar notas", "/carga"], ["Calcular riesgo", "/prediccion"]],
+  director: [["Estudiantes", "/estudiantes"], ["Alertas", "/alertas"], ["Calendario", "/calendario"], ["Calcular riesgo", "/prediccion"]],
   docente: [["Estudiantes", "/estudiantes"], ["Calendario", "/calendario"], ["Cargar notas", "/carga"]],
   tutor: [["Estudiantes", "/estudiantes"], ["Alertas", "/alertas"], ["Actas de tutoría", "/actas"], ["Calendario", "/calendario"], ["Calcular riesgo", "/prediccion"]],
-  analista: [["Estudiantes", "/estudiantes"], ["Calendario", "/calendario"], ["Cargar notas", "/carga"], ["Calcular riesgo", "/prediccion"], ["Umbrales de riesgo", "/configuracion"]],
+  analista: [["Estudiantes", "/estudiantes"], ["Calendario", "/calendario"], ["Calcular riesgo", "/prediccion"], ["Umbrales de riesgo", "/configuracion"]],
   padre: [["Encuesta familiar", "/encuesta"], ["Calendario", "/calendario"]],
 };
 const ROLES = Object.keys(RUTAS) as Rol[];

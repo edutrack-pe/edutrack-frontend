@@ -20,7 +20,7 @@ export function CargaCSV() {
 
   return (
     <>
-      <Titulo antetitulo="Gestión" subtitulo="Importa notas o asistencias sin digitarlas una por una.">Carga masiva CSV / Excel</Titulo>
+      <Titulo antetitulo="Gestión" subtitulo="Importa las notas o asistencias de tus cursos sin digitarlas una por una.">Carga masiva CSV / Excel</Titulo>
       <Card sx={{ maxWidth: 640 }}>
         <CardContent>
           <Stack spacing={2}>

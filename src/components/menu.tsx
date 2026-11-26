@@ -33,7 +33,7 @@ export const MENU: ItemMenu[] = [
   { ruta: "/encuesta", texto: "Encuesta familiar", icono: <QuizIcon />, roles: ["padre"], grupo: "seguimiento" },
   { ruta: "/actas", texto: "Actas de tutoría", icono: <DescriptionIcon />, roles: ["tutor"], grupo: "seguimiento" },
   { ruta: "/calendario", texto: "Calendario", icono: <CalendarMonthIcon />, roles: ["director", "docente", "tutor", "padre", "analista"], grupo: "seguimiento" },
-  { ruta: "/carga", texto: "Cargar notas", icono: <UploadFileIcon />, roles: ["docente", "analista", "director"], grupo: "gestion" },
+  { ruta: "/carga", texto: "Cargar notas", icono: <UploadFileIcon />, roles: ["docente"], grupo: "gestion" },
   { ruta: "/prediccion", texto: "Calcular riesgo", icono: <AssessmentIcon />, roles: ["analista", "director", "tutor"], grupo: "gestion" },
   { ruta: "/configuracion", texto: "Umbrales de riesgo", icono: <TuneIcon />, roles: ["analista"], grupo: "gestion" },
 ];

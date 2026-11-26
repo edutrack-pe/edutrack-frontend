@@ -57,7 +57,7 @@ const PERMISOS = {
   pdf: ["director", "tutor"],
   configLeer: ["analista", "director"],
   configEscribir: ["analista"],
-  ingesta: ["docente", "analista", "director"],
+  ingesta: ["docente"],
   encuesta: ["padre", "analista", "tutor"],
   actasLeer: ["tutor", "director"],
   actasCrear: ["tutor"],

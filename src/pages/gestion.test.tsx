@@ -31,7 +31,7 @@ describe("Carga masiva CSV / Excel (HU03)", () => {
   });
 
   it("el botón de selección abre el selector de archivos", async () => {
-    const { usuario, container } = renderApp("/carga", "director");
+    const { usuario, container } = renderApp("/carga", "docente");
     const input = selectorArchivo(container);
     let abierto = false;
     input.addEventListener("click", () => { abierto = true; });
@@ -43,7 +43,7 @@ describe("Carga masiva CSV / Excel (HU03)", () => {
     // server.use antepone: la demora (última registrada) corre primero y luego cede a la respuesta.
     responderCon("post", "/ingesta/csv", { insertados: 150, errores: [] });
     demorar("post", "/ingesta/csv", 200);
-    const { usuario, container } = renderApp("/carga", "analista");
+    const { usuario, container } = renderApp("/carga", "docente");
     await screen.findByRole("heading", { level: 1, name: "Carga masiva CSV / Excel" });
     await usuario.upload(selectorArchivo(container), archivo("notas.xlsx"));
     await usuario.click(screen.getByRole("button", { name: "Importar" }));
