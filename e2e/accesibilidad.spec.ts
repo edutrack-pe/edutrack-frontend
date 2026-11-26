@@ -20,6 +20,7 @@ const PANTALLAS: [string, Rol | null, string][] = [
   ["Estudiantes", "director", "/estudiantes"],
   ["Ficha del estudiante", "director", "/estudiantes/5"],
   ["Portal del apoderado", "padre", "/portal"],
+  ["Modelo predictivo", "director", "/modelo"],
 ];
 
 for (const [nombre, rol, ruta] of PANTALLAS) {

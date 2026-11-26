@@ -166,6 +166,38 @@ export interface ConfigRiesgo {
   umbral_rojo: number;
 }
 
+/** Ficha del modelo publicado (GET /modelo). Los valores vienen tal cual del entrenamiento. */
+export interface MatrizConfusion { vn: number; fp: number; fn: number; vp: number }
+
+export interface MetricasConUmbral {
+  umbral: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  matriz_confusion: MatrizConfusion;
+}
+
+export interface EvaluacionModelo {
+  datos: { origen: string; filas: number; entrenamiento: number; prueba: number; proporcion_en_riesgo: number };
+  validacion_cruzada: { folds: number; f1_media: number; f1_desviacion: number; auc_media: number };
+  prueba: MetricasConUmbral & { auc_roc: number };
+  sensibilidad_umbral: MetricasConUmbral[];
+  importancia_variables: { variable: string; importancia: number }[];
+  variables_descartadas_vif: string[];
+  vif_maximo: number | null;
+  mejores_hiperparametros: Record<string, number | string | null>;
+  metas: { f1_minimo: number; auc_minimo_exclusivo: number };
+  cumple_rnf02: boolean;
+}
+
+export interface FichaModelo {
+  version: string;
+  fecha_entrenamiento: string | null;
+  variables: string[];
+  umbral_decision: number | null;
+  evaluacion: EvaluacionModelo | null;
+}
+
 export interface Encuesta {
   estudiante_id: number;
   horas_estudio: number;

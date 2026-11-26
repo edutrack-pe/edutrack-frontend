@@ -1,7 +1,7 @@
 import type { AxiosError } from "axios";
 import { api, USE_MOCKS } from "./client";
 import type {
-  Acta, Alerta, Apoderado, Aula, ConfigRiesgo, Dashboard, Encuesta, Estudiante, EstudianteDatos, EstudianteNuevo, Evento,
+  Acta, Alerta, Apoderado, Aula, ConfigRiesgo, Dashboard, Encuesta, FichaModelo, Estudiante, EstudianteDatos, EstudianteNuevo, Evento,
   Ficha, FiltrosDashboard, Prediccion, ResultadoIngesta, ResultadoPrediccion, Token,
 } from "./types";
 
@@ -56,6 +56,7 @@ export const riesgoApi = {
   predecirEstudiante: (id: number, bimestre: number) =>
     api.post<Prediccion>(`/predicciones/estudiante/${id}`, null, { params: { bimestre } }).then((r) => r.data),
   config: () => api.get<ConfigRiesgo>("/config/riesgo").then((r) => r.data),
+  modelo: () => api.get<FichaModelo>("/modelo").then((r) => r.data),
   guardarConfig: (c: ConfigRiesgo) => api.put<ConfigRiesgo>("/config/riesgo", c).then((r) => r.data),
   descargarPdf: async (aulaId: number, nombre: string) => {
     if (USE_MOCKS) {
