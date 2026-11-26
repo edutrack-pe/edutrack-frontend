@@ -98,7 +98,7 @@ describe("cliente HTTP contra la API (MSW)", () => {
     const { server } = await import("../test/msw");
     server.events.on("request:start", ({ request }) => { urls.push(`${request.method} ${new URL(request.url).pathname}${new URL(request.url).search}`); });
     const r = await ingestaApi.subir("asistencias", new File(["codigo"], "a.csv", { type: "text/csv" }));
-    expect(r.insertados).toBe(118);
+    expect(r).toEqual({ filas: 24, insertados: 24, errores: [] });
     expect(urls).toEqual(["POST /api/ingesta/csv?tipo=asistencias"]);
   });
 

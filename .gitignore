@@ -161,3 +161,5 @@ dist-e2e/
 playwright-report/
 test-results/
 blob-report/
+playwright-report-integral/
+test-results-integral/

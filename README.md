@@ -94,6 +94,14 @@ Cubre: login de los 5 roles y recorrido de todas sus rutas, ficha desde el panor
 
 El CI de GitHub Actions ejecuta ambos niveles en cada push y Pull Request.
 
+**E2E integral (stack real, sin mocks).** `e2e-integral/integral.spec.ts` recorre las siete historias del MVP contra el backend, el microservicio ML con el Random Forest entrenado y una base recién cargada con el seed: login y RBAC → registro y edición de un estudiante → carga CSV transaccional → predicción → dashboard con filtros → alertas del tutor → portal familiar. Requiere los tres servicios levantados (backend en 8000, ML en 8001, frontend con `VITE_USE_MOCKS=false` en 5173):
+
+```bash
+E2E_PASSWORD=<clave del seed> npx playwright test -c playwright.integral.config.ts
+```
+
+Genera reporte HTML, trazas y capturas en `playwright-report-integral/` y `test-results-integral/` (no versionados). Resultados de la última ejecución en `edutrack-backend/docs/qa/TEST_EXECUTION_REPORT.md`.
+
 ## Docker
 
 ```bash

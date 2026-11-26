@@ -1,20 +1,26 @@
-import { Box, Typography } from "@mui/material";
+import InsightsIcon from "@mui/icons-material/InsightsOutlined";
+import { Box, Card, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mensajeError } from "../api/client";
-import { calendarioApi, estudiantesApi, riesgoApi } from "../api/endpoints";
+import { aulasApi, calendarioApi, estudiantesApi, riesgoApi } from "../api/endpoints";
+import type { FiltrosDashboard } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { Cargando, ErrorApi } from "../components/comunes";
+import { Cargando, ErrorApi, Vacio } from "../components/comunes";
 import { MapaAula } from "../components/MapaAula";
 import { Agenda } from "../components/panorama/Agenda";
 import { Diagnostico } from "../components/panorama/Diagnostico";
+import { FiltrosPanorama, SIN_INFORMACION } from "../components/panorama/FiltrosPanorama";
 import { Prioridad } from "../components/panorama/Prioridad";
 import { ESPACIO } from "../theme";
 
 export default function Dashboard() {
   const { sesion } = useAuth();
   const navigate = useNavigate();
-  const resumen = useQuery({ queryKey: ["dashboard"], queryFn: riesgoApi.dashboard });
+  const [filtros, setFiltros] = useState<FiltrosDashboard>({});
+  const resumen = useQuery({ queryKey: ["dashboard", filtros], queryFn: () => riesgoApi.dashboard(filtros), placeholderData: (previo) => previo });
+  const aulas = useQuery({ queryKey: ["aulas"], queryFn: aulasApi.listar });
   const estudiantes = useQuery({ queryKey: ["estudiantes", undefined], queryFn: () => estudiantesApi.listar() });
   const calendario = useQuery({ queryKey: ["calendario", "proximos"], queryFn: () => calendarioApi.listar(true) });
   const puedePdf = sesion?.rol === "director" || sesion?.rol === "tutor";
@@ -27,7 +33,9 @@ export default function Dashboard() {
   }
 
   const d = resumen.data;
-  const lista = estudiantes.data ?? [];
+  const visibles = new Set(d.aulas.map((a) => a.aula_id));
+  const lista = (estudiantes.data ?? []).filter((e) => visibles.has(e.aula_id));
+  const filtrable = (aulas.data?.length ?? 0) > 1;
   const eventos = calendario.data ?? [];
   const proxima = [...eventos].sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
   const prioridad = lista.filter((e) => e.riesgo === "rojo").sort((a, b) => (b.probabilidad ?? 0) - (a.probabilidad ?? 0));
@@ -41,8 +49,21 @@ export default function Dashboard() {
     }
   };
 
+  const filtrosUi = filtrable && <FiltrosPanorama aulas={aulas.data!} filtros={filtros} onCambiar={setFiltros} />;
+
+  if (d.total_estudiantes === 0) {
+    return (
+      <Box sx={{ display: "grid", gap: ESPACIO.bloque }}>
+        {filtrosUi}
+        <Card><Vacio icono={<InsightsIcon />} titulo={SIN_INFORMACION}
+          texto="Prueba con otro grado o sección, o quita los filtros para ver todo el panorama." /></Card>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ display: "grid", gap: ESPACIO.bloque }}>
+      {filtrosUi}
       <Diagnostico d={d} proxima={proxima} ambito={sesion?.rol === "tutor" ? "Tu aula" : "Panorama del colegio"}
         puedeCalcular={puedeCalcular}
         onCalcular={() => navigate("/prediccion")}

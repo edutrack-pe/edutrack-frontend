@@ -38,7 +38,7 @@ export function Diagnostico({ d, proxima, ambito, puedeCalcular, onCalcular, onV
             ) : "Ningún estudiante está en riesgo alto"}
           </Typography>
           <Typography variant="subtitle1" sx={{ mt: 1.5, maxWidth: "60ch" }}>
-            {d.rojo > 0 && `Son el ${pct(d.rojo, d.total_estudiantes)} % de ${d.total_estudiantes}. `}
+            {d.rojo > 0 && `Son el ${d.porcentajes.rojo} % de los ${d.evaluados} estudiantes evaluados. `}
             {d.amarillo > 0 && `Otros ${d.amarillo} están en riesgo moderado. `}
             {d.sin_calcular > 0 && `Falta calcular el riesgo de ${d.sin_calcular}.`}
           </Typography>
@@ -67,8 +67,8 @@ export function Diagnostico({ d, proxima, ambito, puedeCalcular, onCalcular, onV
 
       <Box sx={{ mt: { xs: 3, md: 4 }, pt: { xs: 2.5, md: 3 }, borderTop: `1px solid ${MARCA.linea}` }}>
         <FilaMetricas>
-          <Metrica etiqueta="Riesgo alto" estado={d.rojo > 0 ? "rojo" : null} valor={`${pct(d.rojo, d.total_estudiantes)} %`}
-            detalle={`${d.rojo} de ${d.total_estudiantes} estudiantes`} />
+          <Metrica etiqueta="Riesgo alto" estado={d.rojo > 0 ? "rojo" : null} valor={`${d.porcentajes.rojo} %`}
+            detalle={`${d.rojo} de ${d.evaluados} evaluados · ${pct(d.evaluados, d.total_estudiantes)} % del total`} />
           {aulaCritica && (
             <Metrica etiqueta="Aula con más casos" valor={aulaCritica.aula}
               detalle={`${aulaCritica.rojo} de ${aulaCritica.total} en riesgo alto`} />

@@ -7,7 +7,8 @@
  * - los permisos por rol y los mensajes de error copian los de `edutrack-backend` (401, 403, 404, 422).
  */
 import type {
-  Acta, Alerta, Aula, ConfigRiesgo, Dashboard, Estudiante, Evento, Ficha, Nota, Riesgo, Rol,
+  Acta, Alerta, Apoderado, Aula, ConfigRiesgo, Dashboard, Estudiante, EstudianteDatos, EstudianteNuevo, Evento, Ficha,
+  Nota, Prediccion, Riesgo, Rol,
 } from "../api/types";
 
 export interface PeticionDemo {
@@ -33,6 +34,12 @@ export const NOMBRES_DEMO: Record<Rol, string> = {
   padre: "Juan Pérez", analista: "Ing. Lucía Ramos",
 };
 export const PDF_DEMO = "%PDF-1.4 demo";
+export const MODELO_DEMO = "rf-demo";
+/** Apoderados demo; el usuario `padre@…` es el apoderado del estudiante 5. */
+export const APODERADOS: Apoderado[] = [
+  { id: 7, nombre: "Juan Pérez", email: "padre@edutrack.pe" },
+  { id: 8, nombre: "Apoderada Demo 2", email: "padre2@edutrack.pe" },
+];
 
 const NOMBRES = ["Ana", "Luis", "María", "José", "Lucía", "Carlos", "Valeria", "Diego", "Camila", "Mateo", "Sofía", "Andrés",
   "Daniela", "Jorge", "Fernanda", "Renzo", "Alessandra", "Bruno", "Ximena", "Piero", "Gabriela", "Sebastián", "Nicole", "Thiago"];
@@ -58,6 +65,8 @@ const PERMISOS = {
   configLeer: ["analista", "director"],
   configEscribir: ["analista"],
   ingesta: ["docente"],
+  estudianteCrear: ["director", "analista"],
+  estudianteEditar: ["director", "analista", "tutor"],
   encuesta: ["padre", "analista", "tutor"],
   actasLeer: ["tutor", "director"],
   actasCrear: ["tutor"],
@@ -81,6 +90,18 @@ function leerJson<T>(cuerpo: unknown): T {
   return (typeof cuerpo === "string" ? JSON.parse(cuerpo) : cuerpo) as T;
 }
 
+/** Nombre del archivo enviado en un FormData (`archivo`), si se puede leer. */
+function nombreArchivo(cuerpo: unknown): string | null {
+  if (typeof FormData !== "undefined" && cuerpo instanceof FormData) {
+    const archivo = cuerpo.get("archivo");
+    return archivo && typeof archivo === "object" && "name" in archivo ? String(archivo.name) : null;
+  }
+  return null;
+}
+
+const CODIGO = /^[A-Z]\d{4,8}$/;
+const limpio = (s: unknown) => (typeof s === "string" ? s.split(/\s+/).filter(Boolean).join(" ") : "");
+
 interface Perfil { base: number; faltas: number; tareas: number; factores: string[] }
 
 /** Crea una instancia nueva del backend simulado, con su propio estado. */
@@ -93,9 +114,9 @@ export function crearBackendDemo() {
   const elegir = <T,>(xs: T[]): T => xs[Math.floor(rnd() * xs.length)];
 
   const aulas: Aula[] = [
-    { id: 1, nombre: "3° A", grado: 3, tutor_id: 3 },
-    { id: 2, nombre: "3° B", grado: 3, tutor_id: 4 },
-    { id: 3, nombre: "4° A", grado: 4, tutor_id: 5 },
+    { id: 1, nombre: "3° A", grado: 3, seccion: "A", tutor_id: 3 },
+    { id: 2, nombre: "3° B", grado: 3, seccion: "B", tutor_id: 4 },
+    { id: 3, nombre: "4° A", grado: 4, seccion: "A", tutor_id: 5 },
   ];
   const perfiles = new Map<number, Perfil>();
   const estudiantes: Estudiante[] = [];
@@ -115,26 +136,42 @@ export function crearBackendDemo() {
     });
     estudiantes.push({
       id: i, codigo: `A${String(i).padStart(4, "0")}`, nombres: elegir(NOMBRES),
-      apellidos: `${elegir(APELLIDOS)} ${elegir(APELLIDOS)}`, aula_id: aula.id,
+      apellidos: `${elegir(APELLIDOS)} ${elegir(APELLIDOS)}`, aula_id: aula.id, apoderado_id: null,
       riesgo: nivel(prob), probabilidad: Math.round(prob * 100) / 100,
     });
   }
   // El hijo del apoderado demo: un caso en riesgo moderado para mostrar pautas.
   estudiantes[4].riesgo = "amarillo";
   estudiantes[4].probabilidad = 0.58;
+  estudiantes[4].apoderado_id = APODERADOS[0].id;
+  estudiantes[40].apoderado_id = APODERADOS[1].id;
 
-  const alertas: Alerta[] = estudiantes
-    .filter((e) => e.riesgo === "rojo")
-    .map((e, i) => ({
-      id: i + 1, estudiante_id: e.id, leida: i % 3 === 2,
-      fecha: new Date(Date.now() - i * 3_600_000).toISOString(),
-      mensaje: `${e.nombres} ${e.apellidos} (${aulas.find((a) => a.id === e.aula_id)!.nombre}) está en RIESGO ALTO ` +
-        `(${Math.round((e.probabilidad ?? 0) * 100)}%). Factores: promedio bajo, inasistencias, tareas no entregadas.`,
-    }));
+  const nombreAula = (id: number) => aulas.find((a) => a.id === id)?.nombre ?? "";
+  const texto = (f: string) => ({ promedio: "promedio bajo", inasistencias: "inasistencias", tareas_entregadas_pct: "tareas no entregadas",
+    cursos_desaprobados: "cursos desaprobados", comunicacion_familiar: "poca comunicación familiar", horas_estudio: "pocas horas de estudio" }[f] ?? f);
+  const nuevaAlerta = (e: Estudiante, id: number, leida: boolean, horas = 0): Alerta => {
+    const factores = perfiles.get(e.id)?.factores ?? [];
+    return {
+      id, estudiante_id: e.id, estudiante: `${e.nombres} ${e.apellidos}`, aula: nombreAula(e.aula_id), prediccion_id: e.id,
+      riesgo: "rojo", probabilidad: e.probabilidad, factores, leida,
+      fecha: new Date(Date.now() - horas * 3_600_000).toISOString(),
+      mensaje: `${e.nombres} ${e.apellidos} (${nombreAula(e.aula_id)}) está en RIESGO ALTO ` +
+        `(${Math.round((e.probabilidad ?? 0) * 100)}%). Factores: ${factores.map(texto).join(", ")}.`,
+    };
+  };
+  const alertas: Alerta[] = estudiantes.filter((e) => e.riesgo === "rojo").map((e, i) => nuevaAlerta(e, i + 1, i % 3 === 2, i));
+  /** HU06: una alerta pendiente por estudiante; si ya existe se actualiza en lugar de duplicarse. */
+  const registrarAlerta = (e: Estudiante): boolean => {
+    const pendiente = alertas.find((a) => a.estudiante_id === e.id && !a.leida);
+    const nueva = nuevaAlerta(e, pendiente?.id ?? Math.max(0, ...alertas.map((a) => a.id)) + 1, false);
+    if (pendiente) { Object.assign(pendiente, nueva); return false; }
+    alertas.unshift(nueva);
+    return true;
+  };
   const actas: Acta[] = [];
 
   const visibles = (rol: Rol): Estudiante[] => {
-    if (rol === "padre") return [estudiantes[4]];
+    if (rol === "padre") return estudiantes.filter((e) => e.apoderado_id === APODERADOS[0].id);
     if (rol === "tutor") return estudiantes.filter((e) => e.aula_id === 1);
     return estudiantes;
   };
@@ -143,16 +180,41 @@ export function crearBackendDemo() {
     return aulas.filter((a) => ids.has(a.id));
   };
 
-  const dashboard = (rol: Rol): Dashboard => {
-    const lista = visibles(rol);
+  const dashboard = (rol: Rol, grado?: number, seccion?: string): Dashboard => {
+    const filtradas = aulasVisibles(rol).filter((a) => (!grado || a.grado === grado) && (!seccion || a.seccion === seccion.toUpperCase()));
+    const ids = new Set(filtradas.map((a) => a.id));
+    const lista = visibles(rol).filter((e) => ids.has(e.aula_id));
     const contar = (xs: Estudiante[], r: Riesgo | null) => xs.filter((e) => e.riesgo === r).length;
-    const porAula = aulasVisibles(rol).map((a) => {
+    const porAula = filtradas.map((a) => {
       const xs = lista.filter((e) => e.aula_id === a.id);
-      return { aula_id: a.id, aula: a.nombre, total: xs.length, verde: contar(xs, "verde"), amarillo: contar(xs, "amarillo"),
-               rojo: contar(xs, "rojo"), sin_calcular: contar(xs, null) };
+      return { aula_id: a.id, aula: a.nombre, grado: a.grado, seccion: a.seccion, total: xs.length, verde: contar(xs, "verde"),
+               amarillo: contar(xs, "amarillo"), rojo: contar(xs, "rojo"), sin_calcular: contar(xs, null) };
     });
-    return { total_estudiantes: lista.length, verde: contar(lista, "verde"), amarillo: contar(lista, "amarillo"),
-             rojo: contar(lista, "rojo"), sin_calcular: contar(lista, null), aulas: porAula };
+    const [verde, amarillo, rojo] = (["verde", "amarillo", "rojo"] as const).map((r) => contar(lista, r));
+    const evaluados = verde + amarillo + rojo;
+    const pct = (n: number) => (evaluados ? Math.round((1000 * n) / evaluados) / 10 : 0);
+    return { total_estudiantes: lista.length, evaluados, verde, amarillo, rojo, sin_calcular: contar(lista, null),
+             porcentajes: { verde: pct(verde), amarillo: pct(amarillo), rojo: pct(rojo) }, aulas: porAula };
+  };
+
+  const prediccion = (e: Estudiante, bimestre = 1): Prediccion | null => e.riesgo ? {
+    id: e.id, estudiante_id: e.id, bimestre, riesgo: e.riesgo, probabilidad: e.probabilidad!,
+    factores: e.riesgo === "verde" ? [] : perfiles.get(e.id)!.factores, modelo_version: MODELO_DEMO, fecha: new Date().toISOString(),
+  } : null;
+
+  /** HU02 · Mismas validaciones que el backend (código, nombres, aula y apoderado). */
+  const validarEstudiante = (datos: Partial<EstudianteNuevo>, nuevo: boolean): RespuestaDemo | null => {
+    if (nuevo && !CODIGO.test(String(datos.codigo ?? "").trim().toUpperCase())) {
+      return error(422, [{ msg: "El código debe tener una letra y de 4 a 8 dígitos, p. ej. A0123" }]);
+    }
+    if (limpio(datos.nombres).length < 2 || limpio(datos.apellidos).length < 2) {
+      return error(422, [{ msg: "Nombres y apellidos son obligatorios (mínimo 2 caracteres)" }]);
+    }
+    if (!aulas.some((a) => a.id === Number(datos.aula_id))) return error(404, "Aula no encontrada");
+    if (datos.apoderado_id != null && !APODERADOS.some((a) => a.id === datos.apoderado_id)) {
+      return error(422, "El apoderado indicado no existe");
+    }
+    return null;
   };
 
   const ficha = (e: Estudiante): Ficha => {
@@ -165,10 +227,11 @@ export function crearBackendDemo() {
       ? [{ factor: "general", texto: "¡Buen desempeño! Siga acompañando el estudio diario para mantener los logros." }]
       : p.factores.slice(0, e.riesgo === "rojo" ? 3 : 2).map((f) => ({ factor: f, texto: PAUTAS[f] }));
     return {
-      estudiante: e, aula: aulas.find((a) => a.id === e.aula_id)!.nombre, notas,
-      asistencias_total: 22, inasistencias: p.faltas, tareas_entregadas_pct: Math.round(p.tareas * 100) / 100,
-      prediccion: e.riesgo ? { id: e.id, estudiante_id: e.id, bimestre: 1, riesgo: e.riesgo, probabilidad: e.probabilidad!,
-                               factores: p.factores, fecha: new Date().toISOString() } : null,
+      estudiante: e, aula: nombreAula(e.aula_id), notas,
+      asistencias_total: 22, inasistencias: p.faltas, asistencia_pct: Math.round((1000 * (22 - p.faltas)) / 22) / 10,
+      conducta: [{ id: e.id, estudiante_id: e.id, bimestre: 1, valor: p.faltas > 4 ? 2 : 1, observacion: null }],
+      tareas_entregadas_pct: Math.round(p.tareas * 100) / 100,
+      prediccion: prediccion(e),
       pautas,
     };
   };
@@ -200,18 +263,58 @@ export function crearBackendDemo() {
     const exigir = (roles: Rol[]) => (roles.includes(rol) ? null : error(403, "No tienes permiso para esta acción"));
 
     if (ruta === "/aulas") return ok(aulasVisibles(rol));
+    if (ruta === "/apoderados") return exigir(PERMISOS.estudianteCrear) ?? ok(APODERADOS);
+    if (ruta === "/estudiantes" && m === "post") {
+      const denegado = exigir(PERMISOS.estudianteCrear);
+      if (denegado) return denegado;
+      const datos = leerJson<EstudianteNuevo>(cuerpo);
+      const codigo = String(datos.codigo ?? "").trim().toUpperCase();
+      if (estudiantes.some((e) => e.codigo === codigo)) return error(409, "Ya existe un estudiante con ese código");
+      const invalido = validarEstudiante(datos, true);
+      if (invalido) return invalido;
+      const nuevo: Estudiante = { id: Math.max(...estudiantes.map((e) => e.id)) + 1, codigo, nombres: limpio(datos.nombres),
+        apellidos: limpio(datos.apellidos), aula_id: Number(datos.aula_id), apoderado_id: datos.apoderado_id ?? null,
+        riesgo: null, probabilidad: null };
+      estudiantes.push(nuevo);
+      perfiles.set(nuevo.id, { base: 13, faltas: 0, tareas: 1, factores: [] });
+      return { status: 201, data: nuevo };
+    }
     if (ruta === "/estudiantes") {
-      const aula = params.aula_id;
-      return ok(aula ? visibles(rol).filter((e) => e.aula_id === Number(aula)) : visibles(rol));
+      const grado = params.grado ? Number(params.grado) : null;
+      const seccion = params.seccion ? String(params.seccion).toUpperCase() : null;
+      const riesgo = params.riesgo ? String(params.riesgo) : null;
+      const sinCalcular = params.sin_calcular === true || params.sin_calcular === "true";
+      return ok(visibles(rol).filter((e) => {
+        const a = aulas.find((x) => x.id === e.aula_id)!;
+        return (!params.aula_id || e.aula_id === Number(params.aula_id)) && (!grado || a.grado === grado)
+          && (!seccion || a.seccion === seccion) && (!riesgo || e.riesgo === riesgo) && (!sinCalcular || !e.riesgo);
+      }));
     }
     const mFicha = ruta.match(/^\/estudiantes\/(\d+)$/);
     if (mFicha) {
       const e = estudiantes.find((x) => x.id === Number(mFicha[1]));
       if (!e) return error(404, "Estudiante no encontrado");
+      if (m === "put") {
+        const denegado = exigir(PERMISOS.estudianteEditar);
+        if (denegado) return denegado;
+        if (!visibles(rol).includes(e)) return error(403, "No tienes acceso a este estudiante");
+        const datos = leerJson<EstudianteDatos>(cuerpo);
+        if (rol === "tutor" && (Number(datos.aula_id) !== e.aula_id || (datos.apoderado_id ?? null) !== e.apoderado_id)) {
+          return error(403, "El tutor solo puede corregir nombres y apellidos");
+        }
+        const invalido = validarEstudiante(datos, false);
+        if (invalido) return invalido;
+        Object.assign(e, { nombres: limpio(datos.nombres), apellidos: limpio(datos.apellidos), aula_id: Number(datos.aula_id),
+          apoderado_id: datos.apoderado_id ?? null });
+        return ok(e);
+      }
       if (!visibles(rol).includes(e)) return error(403, "No tienes acceso a este estudiante");
       return ok(ficha(e));
     }
-    if (ruta === "/dashboard/resumen") return exigir(PERMISOS.dashboard) ?? ok(dashboard(rol));
+    if (ruta === "/dashboard/resumen") {
+      return exigir(PERMISOS.dashboard)
+        ?? ok(dashboard(rol, params.grado ? Number(params.grado) : undefined, params.seccion ? String(params.seccion) : undefined));
+    }
 
     const mPred = ruta.match(/^\/predicciones\/aula\/(\d+)$/);
     if (mPred) {
@@ -219,11 +322,29 @@ export function crearBackendDemo() {
       if (denegado) return denegado;
       const aulaId = Number(mPred[1]);
       if (!aulasVisibles(rol).some((a) => a.id === aulaId)) return error(403, "No tienes acceso a esta aula");
-      const xs = estudiantes.filter((e) => e.aula_id === aulaId);
-      xs.forEach((e) => { e.riesgo = nivel(e.probabilidad ?? 0); });
+      const xs = estudiantes.filter((e) => e.aula_id === aulaId && e.probabilidad != null);
       const resumen = { verde: 0, amarillo: 0, rojo: 0 } as Record<Riesgo, number>;
-      xs.forEach((e) => { resumen[e.riesgo!] += 1; });
-      return ok({ aula_id: aulaId, bimestre: Number(params.bimestre ?? 1), procesados: xs.length, sin_datos: [], resumen });
+      let alertasGeneradas = 0;
+      xs.forEach((e) => {
+        e.riesgo = nivel(e.probabilidad!);
+        resumen[e.riesgo] += 1;
+        if (e.riesgo === "rojo" && registrarAlerta(e)) alertasGeneradas += 1;
+      });
+      const sinDatos = estudiantes.filter((e) => e.aula_id === aulaId && e.probabilidad == null).map((e) => e.codigo);
+      if (!xs.length) return error(422, "Datos insuficientes: registre las calificaciones del bimestre actual");
+      return ok({ aula_id: aulaId, bimestre: Number(params.bimestre ?? 1), procesados: xs.length, sin_datos: sinDatos, resumen,
+                  alertas_generadas: alertasGeneradas, modelo_version: MODELO_DEMO });
+    }
+    const mPredEst = ruta.match(/^\/predicciones\/estudiante\/(\d+)$/);
+    if (mPredEst && m === "post") {
+      const denegado = exigir(PERMISOS.prediccion);
+      if (denegado) return denegado;
+      const e = visibles(rol).find((x) => x.id === Number(mPredEst[1]));
+      if (!e) return error(403, "No tienes acceso a este estudiante");
+      if (e.probabilidad == null) return error(422, "Datos insuficientes: registre las calificaciones del bimestre actual");
+      e.riesgo = nivel(e.probabilidad);
+      if (e.riesgo === "rojo") registrarAlerta(e);
+      return ok(prediccion(e, Number(params.bimestre ?? 1)));
     }
 
     if (ruta === "/alertas") {
@@ -233,13 +354,15 @@ export function crearBackendDemo() {
       const soloNoLeidas = params.solo_no_leidas === true || params.solo_no_leidas === "true";
       return ok(alertas.filter((a) => ids.has(a.estudiante_id) && (!soloNoLeidas || !a.leida)));
     }
-    const mLeer = ruta.match(/^\/alertas\/(\d+)\/leer$/);
-    if (mLeer) {
+    const mAlerta = ruta.match(/^\/alertas\/(\d+)(\/leer)?$/);
+    if (mAlerta) {
       const denegado = exigir(PERMISOS.alertas);
       if (denegado) return denegado;
-      const a = alertas.find((x) => x.id === Number(mLeer[1]));
+      const ids = new Set(visibles(rol).map((e) => e.id));
+      // Como en el backend: una alerta de otra aula responde 404, sin revelar que existe.
+      const a = alertas.find((x) => x.id === Number(mAlerta[1]) && ids.has(x.estudiante_id));
       if (!a) return error(404, "Alerta no encontrada");
-      a.leida = true;
+      if (mAlerta[2]) a.leida = true;
       return ok(a);
     }
 
@@ -260,8 +383,13 @@ export function crearBackendDemo() {
     }
 
     if (ruta === "/ingesta/csv") {
-      return exigir(PERMISOS.ingesta)
-        ?? ok({ insertados: 118, errores: ["Fila 7: estudiante 'A9999' no existe", "Fila 23: nota (0-20) fuera de rango"] });
+      const denegado = exigir(PERMISOS.ingesta);
+      if (denegado) return denegado;
+      // HU03: la carga es transaccional. Un archivo cuyo nombre contiene "error" simula una fila inválida.
+      const nombre = nombreArchivo(cuerpo) ?? "notas.csv";
+      if (!/\.(csv|xlsx)$/i.test(nombre)) return error(400, "Formato no permitido, adjunte un archivo CSV o XLSX");
+      if (/error/i.test(nombre)) return ok({ filas: 12, insertados: 0, errores: ["Error en la fila 12: formato de nota inválido"] });
+      return ok({ filas: 24, insertados: 24, errores: [] });
     }
 
     if (ruta === "/encuestas") {

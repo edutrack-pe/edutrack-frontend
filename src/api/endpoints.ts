@@ -1,8 +1,8 @@
 import type { AxiosError } from "axios";
 import { api, USE_MOCKS } from "./client";
 import type {
-  Acta, Alerta, Aula, ConfigRiesgo, Dashboard, Encuesta, Estudiante, Evento, Ficha,
-  ResultadoIngesta, ResultadoPrediccion, Token,
+  Acta, Alerta, Apoderado, Aula, ConfigRiesgo, Dashboard, Encuesta, Estudiante, EstudianteDatos, EstudianteNuevo, Evento,
+  Ficha, FiltrosDashboard, Prediccion, ResultadoIngesta, ResultadoPrediccion, Token,
 } from "./types";
 
 export const authApi = {
@@ -22,6 +22,9 @@ export const estudiantesApi = {
   listar: (aulaId?: number) =>
     api.get<Estudiante[]>("/estudiantes", { params: { aula_id: aulaId } }).then((r) => r.data),
   ficha: (id: number) => api.get<Ficha>(`/estudiantes/${id}`).then((r) => r.data),
+  crear: (datos: EstudianteNuevo) => api.post<Estudiante>("/estudiantes", datos).then((r) => r.data),
+  editar: (id: number, datos: EstudianteDatos) => api.put<Estudiante>(`/estudiantes/${id}`, datos).then((r) => r.data),
+  apoderados: () => api.get<Apoderado[]>("/apoderados").then((r) => r.data),
 };
 
 /** Con `responseType: "blob"` el error de la API llega como Blob: se convierte a JSON para conservar su `detail`. */
@@ -46,9 +49,12 @@ async function leerErrorBlob(error: unknown): Promise<never> {
 }
 
 export const riesgoApi = {
-  dashboard: () => api.get<Dashboard>("/dashboard/resumen").then((r) => r.data),
+  dashboard: (filtros: FiltrosDashboard = {}) =>
+    api.get<Dashboard>("/dashboard/resumen", { params: filtros }).then((r) => r.data),
   predecirAula: (aulaId: number, bimestre: number) =>
     api.post<ResultadoPrediccion>(`/predicciones/aula/${aulaId}`, null, { params: { bimestre } }).then((r) => r.data),
+  predecirEstudiante: (id: number, bimestre: number) =>
+    api.post<Prediccion>(`/predicciones/estudiante/${id}`, null, { params: { bimestre } }).then((r) => r.data),
   config: () => api.get<ConfigRiesgo>("/config/riesgo").then((r) => r.data),
   guardarConfig: (c: ConfigRiesgo) => api.put<ConfigRiesgo>("/config/riesgo", c).then((r) => r.data),
   descargarPdf: async (aulaId: number, nombre: string) => {
@@ -69,8 +75,14 @@ export const riesgoApi = {
 export const alertasApi = {
   listar: (soloNoLeidas = false) =>
     api.get<Alerta[]>("/alertas", { params: { solo_no_leidas: soloNoLeidas } }).then((r) => r.data),
+  detalle: (id: number) => api.get<Alerta>(`/alertas/${id}`).then((r) => r.data),
   leer: (id: number) => api.patch<Alerta>(`/alertas/${id}/leer`).then((r) => r.data),
 };
+
+/** HU03 · Solo se aceptan CSV y XLSX; el backend valida lo mismo. */
+export const FORMATOS_CARGA = [".csv", ".xlsx"];
+export const MENSAJE_FORMATO = "Formato no permitido, adjunte un archivo CSV o XLSX";
+export const formatoPermitido = (nombre: string) => FORMATOS_CARGA.some((ext) => nombre.toLowerCase().endsWith(ext));
 
 export const ingestaApi = {
   plantillaUrl: (tipo: "notas" | "asistencias") =>

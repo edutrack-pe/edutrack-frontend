@@ -25,9 +25,31 @@ describe("Carga masiva CSV / Excel (HU03)", () => {
     await usuario.upload(selectorArchivo(container), archivo());
     expect(screen.getByRole("button", { name: /notas_2026.csv/ })).toBeInTheDocument();
     await usuario.click(screen.getByRole("button", { name: "Importar" }));
-    expect(await screen.findByText(/registros importados/)).toBeInTheDocument();
-    expect(screen.getByText("118")).toBeInTheDocument();
-    expect(screen.getByText("Fila 23: nota (0-20) fuera de rango")).toBeInTheDocument();
+    expect(await screen.findByText(/de 24 registros importados/)).toBeInTheDocument();
+    expect(screen.getByText("24")).toBeInTheDocument();
+  });
+
+  it("si una fila es inválida no importa nada y lista el error (escenario 02)", async () => {
+    responderCon("post", "/ingesta/csv", { filas: 12, insertados: 0, errores: ["Error en la fila 12: formato de nota inválido"] });
+    const { usuario, container } = renderApp("/carga", "docente");
+    await screen.findByRole("heading", { level: 1, name: "Carga masiva CSV / Excel" });
+    await usuario.upload(selectorArchivo(container), archivo());
+    await usuario.click(screen.getByRole("button", { name: "Importar" }));
+    expect(await screen.findByText("No se importó ningún registro.")).toBeInTheDocument();
+    expect(screen.getByText("Error en la fila 12: formato de nota inválido")).toBeInTheDocument();
+    expect(screen.queryByText(/registros importados/)).not.toBeInTheDocument();
+  });
+
+  it("rechaza en el navegador un formato no permitido (escenario 03)", async () => {
+    const peticiones = espiarPeticiones();
+    const { container } = renderApp("/carga", "docente");
+    await screen.findByRole("heading", { level: 1, name: "Carga masiva CSV / Excel" });
+    expect(selectorArchivo(container)).toHaveAttribute("accept", ".csv,.xlsx");
+    // fireEvent: el selector del sistema filtra por `accept`, pero un archivo arrastrado o renombrado puede saltarlo.
+    fireEvent.change(selectorArchivo(container), { target: { files: [archivo("notas.docx")] } });
+    expect(await screen.findByText("Formato no permitido, adjunte un archivo CSV o XLSX")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Importar" })).toBeDisabled();
+    expect(peticiones.some((p) => p.ruta === "/ingesta/csv")).toBe(false);
   });
 
   it("el botón de selección abre el selector de archivos", async () => {
@@ -35,13 +57,13 @@ describe("Carga masiva CSV / Excel (HU03)", () => {
     const input = selectorArchivo(container);
     let abierto = false;
     input.addEventListener("click", () => { abierto = true; });
-    await usuario.click(await screen.findByRole("button", { name: "Seleccionar archivo (.csv, .xlsx)" }));
+    await usuario.click(await screen.findByRole("button", { name: "Seleccionar archivo (.csv o .xlsx)" }));
     expect(abierto).toBe(true);
   });
 
   it("muestra 'Importando…' mientras sube y confirma una importación sin errores", async () => {
     // server.use antepone: la demora (última registrada) corre primero y luego cede a la respuesta.
-    responderCon("post", "/ingesta/csv", { insertados: 150, errores: [] });
+    responderCon("post", "/ingesta/csv", { filas: 150, insertados: 150, errores: [] });
     demorar("post", "/ingesta/csv", 200);
     const { usuario, container } = renderApp("/carga", "docente");
     await screen.findByRole("heading", { level: 1, name: "Carga masiva CSV / Excel" });
@@ -49,7 +71,7 @@ describe("Carga masiva CSV / Excel (HU03)", () => {
     await usuario.click(screen.getByRole("button", { name: "Importar" }));
     expect(screen.getByRole("button", { name: "Importando…" })).toBeDisabled();
     expect(await screen.findByText("150")).toBeInTheDocument();
-    expect(screen.queryByText(/^Fila /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Error en la fila/)).not.toBeInTheDocument();
   });
 
   it("muestra el mensaje de validación del backend si el archivo es inválido", async () => {
@@ -87,8 +109,9 @@ describe("Calcular riesgo (HU04)", () => {
     await usuario.click(screen.getByRole("combobox", { name: "Bimestre" }));
     await usuario.click(screen.getByRole("option", { name: "Bimestre 2" }));
     await usuario.click(boton);
-    expect(await screen.findByText("30 estudiantes evaluados.")).toBeInTheDocument();
+    expect(await screen.findByText(/30 estudiantes evaluados/)).toBeInTheDocument();
     expect(screen.getByText(/Riesgo alto: \d+/)).toBeInTheDocument();
+    expect(screen.getByText("Modelo rf-demo")).toBeInTheDocument();
     expect(urls).toEqual(["http://api.test/api/predicciones/aula/1?bimestre=2"]);
   });
 
@@ -122,9 +145,13 @@ describe("Alertas (HU06)", () => {
     expect(screen.getAllByRole("img", { name: "Leída" }).length).toBeGreaterThan(0);
   });
 
-  it("abre la ficha del estudiante desde la alerta", async () => {
+  it("muestra el detalle de la alerta y abre la ficha del estudiante", async () => {
     const { usuario } = renderApp("/alertas", "director");
-    await usuario.click((await screen.findAllByText(/está en RIESGO ALTO/))[0]);
+    const primera = (await screen.findAllByText(/· 3° A$|· 3° B$|· 4° A$/))[0];
+    const fila = primera.closest("li")!;
+    expect(within(fila).getByText(/Riesgo alto/)).toBeInTheDocument();
+    expect(within(fila).getByLabelText("Factores de riesgo")).toBeInTheDocument();
+    await usuario.click(primera);
     expect(await screen.findByRole("button", { name: "Volver" })).toBeInTheDocument();
   });
 
