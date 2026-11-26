@@ -8,14 +8,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { mensajeError } from "../api/client";
-import { alertasApi, aulasApi, ingestaApi, riesgoApi } from "../api/endpoints";
-import { Cargando, ErrorApi, Titulo } from "../components/comunes";
+import { alertasApi, aulasApi, FORMATOS_CARGA, formatoPermitido, ingestaApi, MENSAJE_FORMATO, riesgoApi } from "../api/endpoints";
+import { Cargando, ErrorApi, NOMBRE_FACTOR, Titulo } from "../components/comunes";
 import { MARCA, SEMAFORO } from "../theme";
 
 export function CargaCSV() {
   const [tipo, setTipo] = useState<"notas" | "asistencias">("notas");
   const [archivo, setArchivo] = useState<File | null>(null);
+  const [formatoInvalido, setFormatoInvalido] = useState(false);
   const subir = useMutation({ mutationFn: () => ingestaApi.subir(tipo, archivo!) });
+  const elegir = (f: File | null) => {
+    subir.reset();
+    setFormatoInvalido(!!f && !formatoPermitido(f.name));
+    setArchivo(f && formatoPermitido(f.name) ? f : null);
+  };
   const selector = useRef<HTMLInputElement>(null);
 
   return (
@@ -34,23 +40,29 @@ export function CargaCSV() {
             {/* Botón real (no <label>) para que el selector de archivo sea operable y anunciado correctamente. */}
             <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => selector.current?.click()}
               sx={{ minHeight: 88, borderStyle: "dashed", borderWidth: 1.5, justifyContent: "center", "&:hover": { borderStyle: "dashed", borderWidth: 1.5 } }}>
-              {archivo ? archivo.name : "Seleccionar archivo (.csv, .xlsx)"}
+              {archivo ? archivo.name : "Seleccionar archivo (.csv o .xlsx)"}
             </Button>
-            <input ref={selector} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
+            <input ref={selector} hidden type="file" accept={FORMATOS_CARGA.join(",")}
+              onChange={(e) => { elegir(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+            {formatoInvalido && <Alert severity="error">{MENSAJE_FORMATO}</Alert>}
             <Button variant="contained" size="large" disabled={!archivo || subir.isPending} onClick={() => subir.mutate()}>
               {subir.isPending ? "Importando…" : "Importar"}
             </Button>
             {subir.isError && <Alert severity="error">{mensajeError(subir.error)}</Alert>}
-            {subir.data && (
-              <Alert severity={subir.data.errores.length ? "warning" : "success"}>
-                <strong>{subir.data.insertados}</strong> registros importados.
-                {subir.data.errores.length > 0 && (
-                  <Box component="ul" sx={{ m: 0, pl: 2 }}>
-                    {subir.data.errores.slice(0, 20).map((e) => <li key={e}>{e}</li>)}
-                  </Box>
-                )}
+            {subir.data && (subir.data.errores.length ? (
+              <Alert severity="error">
+                <strong>No se importó ningún registro.</strong> Corrige {subir.data.errores.length === 1 ? "este error" : "estos errores"} y
+                vuelve a subir el archivo completo:
+                <Box component="ul" sx={{ m: 0, mt: 0.5, pl: 2 }}>
+                  {subir.data.errores.slice(0, 20).map((e) => <li key={e}>{e}</li>)}
+                </Box>
+                {subir.data.errores.length > 20 && <Typography variant="body2">… y {subir.data.errores.length - 20} errores más.</Typography>}
               </Alert>
-            )}
+            ) : (
+              <Alert severity="success">
+                <strong>{subir.data.insertados}</strong> de {subir.data.filas} registros importados.
+              </Alert>
+            ))}
           </Stack>
         </CardContent>
       </Card>
@@ -92,7 +104,9 @@ export function Prediccion() {
             {predecir.isError && <Alert severity="error">{mensajeError(predecir.error)}</Alert>}
             {predecir.data && (
               <Alert severity="success">
-                {predecir.data.procesados} estudiantes evaluados.
+                {predecir.data.procesados} estudiantes evaluados{predecir.data.alertas_generadas > 0
+                  && ` · ${predecir.data.alertas_generadas} ${predecir.data.alertas_generadas === 1 ? "alerta nueva" : "alertas nuevas"} para el tutor(a)`}.
+                {predecir.data.modelo_version && <Typography variant="body2">Modelo {predecir.data.modelo_version}</Typography>}
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
                   {(["rojo", "amarillo", "verde"] as const).map((r) => (
                     <Chip key={r} label={`${SEMAFORO[r].etiqueta}: ${predecir.data.resumen[r]}`}
@@ -135,9 +149,19 @@ export function Alertas() {
                   <Box role="img" aria-label={a.leida ? "Leída" : "Sin leer"} sx={{ width: 10, height: 10, mt: 0.75, borderRadius: "50%", flexShrink: 0,
                     bgcolor: a.leida ? "transparent" : SEMAFORO.rojo.color, border: a.leida ? `1.5px solid ${MARCA.sinCalcular}` : "none" }} />
                   <ListItemText
-                    primary={a.mensaje}
-                    secondary={new Date(a.fecha).toLocaleString("es-PE")}
+                    primary={a.estudiante ? `${a.estudiante} · ${a.aula}` : a.mensaje}
                     primaryTypographyProps={{ fontWeight: a.leida ? 400 : 700 }}
+                    secondaryTypographyProps={{ component: "div" }}
+                    secondary={<>
+                      {SEMAFORO[a.riesgo].etiqueta}{a.probabilidad != null && ` (${Math.round(a.probabilidad * 100)} %)`}
+                      {" · "}{new Date(a.fecha).toLocaleString("es-PE")}
+                      {a.factores.length > 0 && (
+                        <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 0.75 }} aria-label="Factores de riesgo">
+                          {a.factores.map((f) => <Chip key={f} size="small" label={NOMBRE_FACTOR[f] ?? f}
+                            sx={{ bgcolor: SEMAFORO[a.riesgo].fondo, color: SEMAFORO[a.riesgo].texto }} />)}
+                        </Stack>
+                      )}
+                    </>}
                   />
                 </ListItemButton>
               </ListItem>
