@@ -40,40 +40,40 @@ const matriz = (vn: number, fp: number, fn: number, vp: number) => ({ vn, fp, fn
 
 /**
  * Ficha del modelo publicado, copiada sin cambios de edutrack-ml/ml-service/reports/metricas.json
- * (rf-20261126-9ad6a250). En la demo las predicciones son simuladas; estas métricas son las del modelo real.
+ * (rf-20261127-7734085c). En la demo las predicciones son simuladas; estas métricas son las del modelo real.
  */
 export const FICHA_MODELO: FichaModelo = {
-  version: "rf-20261126-9ad6a250",
-  fecha_entrenamiento: "2026-11-26T20:29:37+00:00",
+  version: "rf-20261127-7734085c",
+  fecha_entrenamiento: "2026-11-27T00:53:48+00:00",
   variables: ["promedio", "inasistencias", "conducta", "horas_estudio", "nivel_edu_padres", "acceso_tecnologia",
     "tiempo_disponible_padres", "comunicacion_familiar", "cursos_desaprobados", "tareas_entregadas_pct"],
-  umbral_decision: 0.5,
+  umbral_decision: 0.49,
   evaluacion: {
-    datos: { origen: "sintético (pipeline/dataset.py, semilla 42)", filas: 2000, entrenamiento: 1600, prueba: 400, proporcion_en_riesgo: 0.283 },
-    validacion_cruzada: { folds: 5, f1_media: 0.7646, f1_desviacion: 0.018, auc_media: 0.9144 },
-    prueba: { umbral: 0.5, precision: 0.6842, recall: 0.8053, f1: 0.7398, matriz_confusion: matriz(245, 42, 22, 91), auc_roc: 0.9122 },
+    datos: { origen: "sintético (pipeline/dataset.py, semilla 42)", filas: 10000, entrenamiento: 8000, prueba: 2000, proporcion_en_riesgo: 0.2853 },
+    validacion_cruzada: { folds: 5, f1_media: 0.7482, f1_desviacion: 0.0193, auc_media: 0.9124 },
+    prueba: { umbral: 0.49, precision: 0.7359, recall: 0.7758, f1: 0.7553, matriz_confusion: matriz(1270, 159, 128, 443), auc_roc: 0.9229 },
     sensibilidad_umbral: [
-      { umbral: 0.4, precision: 0.6533, recall: 0.8673, f1: 0.7452, matriz_confusion: matriz(235, 52, 15, 98) },
-      { umbral: 0.5, precision: 0.6842, recall: 0.8053, f1: 0.7398, matriz_confusion: matriz(245, 42, 22, 91) },
-      { umbral: 0.7, precision: 0.7802, recall: 0.6283, f1: 0.6961, matriz_confusion: matriz(267, 20, 42, 71) },
+      { umbral: 0.4, precision: 0.6957, recall: 0.8406, f1: 0.7613, matriz_confusion: matriz(1219, 210, 91, 480) },
+      { umbral: 0.5, precision: 0.7436, recall: 0.7671, f1: 0.7552, matriz_confusion: matriz(1278, 151, 133, 438) },
+      { umbral: 0.7, precision: 0.8341, recall: 0.6077, f1: 0.7031, matriz_confusion: matriz(1360, 69, 224, 347) },
     ],
     importancia_variables: [
-      { variable: "promedio", importancia: 0.4586 },
-      { variable: "cursos_desaprobados", importancia: 0.3054 },
-      { variable: "inasistencias", importancia: 0.0524 },
-      { variable: "tareas_entregadas_pct", importancia: 0.0375 },
-      { variable: "nivel_edu_padres", importancia: 0.0347 },
-      { variable: "conducta", importancia: 0.0304 },
-      { variable: "comunicacion_familiar", importancia: 0.0303 },
-      { variable: "horas_estudio", importancia: 0.0286 },
-      { variable: "tiempo_disponible_padres", importancia: 0.0128 },
-      { variable: "acceso_tecnologia", importancia: 0.0092 },
+      { variable: "promedio", importancia: 0.4562 },
+      { variable: "cursos_desaprobados", importancia: 0.2344 },
+      { variable: "horas_estudio", importancia: 0.0634 },
+      { variable: "tareas_entregadas_pct", importancia: 0.0626 },
+      { variable: "inasistencias", importancia: 0.0554 },
+      { variable: "conducta", importancia: 0.0446 },
+      { variable: "comunicacion_familiar", importancia: 0.0283 },
+      { variable: "nivel_edu_padres", importancia: 0.0243 },
+      { variable: "tiempo_disponible_padres", importancia: 0.0178 },
+      { variable: "acceso_tecnologia", importancia: 0.013 },
     ],
     variables_descartadas_vif: [],
-    vif_maximo: 1.617,
-    mejores_hiperparametros: { max_depth: 6, min_samples_leaf: 3, n_estimators: 400 },
+    vif_maximo: 1.642,
+    mejores_hiperparametros: { max_depth: null, min_samples_leaf: 5, n_estimators: 400 },
     metas: { f1_minimo: 0.75, auc_minimo_exclusivo: 0.8 },
-    cumple_rnf02: false,
+    cumple_rnf02: true,
   },
 };
 /** Apoderados demo; el usuario `padre@…` es el apoderado del estudiante 5. */

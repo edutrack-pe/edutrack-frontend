@@ -156,8 +156,16 @@ function Importancia({ ev }: { ev: EvaluacionModelo }) {
 
 const USO_UMBRAL: Record<string, string> = {
   "0.40": "Límite bajo / moderado (valor por defecto)",
+  "0.50": "Referencia (corte estándar)",
   "0.70": "Riesgo alto y alerta al tutor (valor por defecto)",
 };
+
+/** Umbrales comparados más el del propio modelo (si no está ya en la lista), de menor a mayor. */
+function filasUmbral(ev: EvaluacionModelo) {
+  const filas = [...ev.sensibilidad_umbral];
+  if (!filas.some((s) => s.umbral === ev.prueba.umbral)) filas.push(ev.prueba);
+  return filas.sort((a, b) => a.umbral - b.umbral);
+}
 
 function Sensibilidad({ ev, umbralModelo }: { ev: EvaluacionModelo; umbralModelo: number | null }) {
   return (
@@ -178,7 +186,7 @@ function Sensibilidad({ ev, umbralModelo }: { ev: EvaluacionModelo; umbralModelo
             </TableRow>
           </TableHead>
           <TableBody>
-            {ev.sensibilidad_umbral.map((s) => {
+            {filasUmbral(ev).map((s) => {
               const clave = s.umbral.toFixed(2);
               const uso = s.umbral === umbralModelo ? "Decisión del modelo" : USO_UMBRAL[clave] ?? "–";
               return (
