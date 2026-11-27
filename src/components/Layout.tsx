@@ -3,11 +3,11 @@ import LogoutIcon from "@mui/icons-material/LogoutRounded";
 import MenuIcon from "@mui/icons-material/MenuRounded";
 import NotificationsIcon from "@mui/icons-material/NotificationsNoneRounded";
 import {
-  AppBar, Avatar, Badge, BottomNavigation, BottomNavigationAction, Box, ButtonBase, Drawer, IconButton, List,
-  ListItemButton, ListItemIcon, ListItemText, Paper, Toolbar, Tooltip, Typography, useMediaQuery, useTheme,
+  Alert, AppBar, Avatar, Badge, BottomNavigation, BottomNavigationAction, Box, ButtonBase, Drawer, IconButton, List,
+  ListItemButton, ListItemIcon, ListItemText, Paper, Snackbar, Toolbar, Tooltip, Typography, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { USE_MOCKS } from "../api/client";
 import { alertasApi } from "../api/endpoints";
@@ -57,6 +57,11 @@ export function Layout() {
   const theme = useTheme();
   const movil = useMediaQuery(theme.breakpoints.down("md"));
   const [abierto, setAbierto] = useState(false);
+  // HU01: saludo tras iniciar sesión. Se limpia el estado para que no reaparezca al recargar.
+  const [bienvenida, setBienvenida] = useState(() => Boolean((location.state as { bienvenida?: boolean } | null)?.bienvenida));
+  useEffect(() => {
+    if (bienvenida) navigate(location.pathname, { replace: true, state: null });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const veAlertas = sesion?.rol === "tutor" || sesion?.rol === "director";
   const alertas = useQuery({ queryKey: ["alertas", "no-leidas"], queryFn: () => alertasApi.listar(true), enabled: veAlertas });
@@ -157,6 +162,13 @@ export function Layout() {
           pb: { xs: "calc(96px + env(safe-area-inset-bottom))", md: 8 } }}>
         <Box sx={{ maxWidth: 1280, mx: "auto" }}><AvisoSinConexion /><Outlet /></Box>
       </Box>
+
+      <Snackbar open={bienvenida} autoHideDuration={4000} onClose={() => setBienvenida(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }} sx={{ bottom: { xs: 96, md: 24 } }}>
+        <Alert role="status" severity="success" variant="filled" onClose={() => setBienvenida(false)}>
+          Bienvenido al sistema, {sesion?.nombre}
+        </Alert>
+      </Snackbar>
 
       {movil && (
         <Paper component="nav" aria-label="Accesos principales" square

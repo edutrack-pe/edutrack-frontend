@@ -110,6 +110,7 @@ describe("Calcular riesgo (HU04)", () => {
     await usuario.click(screen.getByRole("option", { name: "Bimestre 2" }));
     await usuario.click(boton);
     expect(await screen.findByText(/30 estudiantes evaluados/)).toBeInTheDocument();
+    expect(screen.getByText("Evaluación predictiva completada.")).toBeInTheDocument(); // HU04, escenario 01
     expect(screen.getByText(/Riesgo alto: \d+/)).toBeInTheDocument();
     expect(screen.getByText("Modelo rf-demo")).toBeInTheDocument();
     expect(urls).toEqual(["http://api.test/api/predicciones/aula/1?bimestre=2"]);

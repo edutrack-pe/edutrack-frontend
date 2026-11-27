@@ -28,6 +28,16 @@ describe("Login", () => {
     expect(await titularPanorama()).toBeInTheDocument();
     expect(localStorage.getItem("edutrack.token")).toBe("demo.director");
     expect(JSON.parse(localStorage.getItem("edutrack.sesion")!)).toEqual({ rol: "director", nombre: "Mg. Rosa Delgado" });
+    // HU01, escenario 01: saludo tras ingresar; se puede cerrar.
+    expect(screen.getByRole("status")).toHaveTextContent("Bienvenido al sistema, Mg. Rosa Delgado");
+    await usuario.click(screen.getByRole("button", { name: /^(Close|Cerrar)$/ }));
+    await waitFor(() => expect(screen.queryByText(/Bienvenido al sistema/)).not.toBeInTheDocument());
+  });
+
+  it("con la sesión ya abierta no repite el saludo", async () => {
+    renderApp("/dashboard", "director");
+    expect(await titularPanorama()).toBeInTheDocument();
+    expect(screen.queryByText(/Bienvenido al sistema/)).not.toBeInTheDocument();
   });
 
   it("muestra el estado de carga mientras valida y bloquea un segundo envío", async () => {

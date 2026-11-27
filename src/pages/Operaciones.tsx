@@ -104,6 +104,7 @@ export function Prediccion() {
             {predecir.isError && <Alert severity="error">{mensajeError(predecir.error)}</Alert>}
             {predecir.data && (
               <Alert severity="success">
+                <strong>Evaluación predictiva completada.</strong>{" "}
                 {predecir.data.procesados} estudiantes evaluados{predecir.data.alertas_generadas > 0
                   && ` · ${predecir.data.alertas_generadas} ${predecir.data.alertas_generadas === 1 ? "alerta nueva" : "alertas nuevas"} para el tutor(a)`}.
                 {predecir.data.modelo_version && <Typography variant="body2">Modelo {predecir.data.modelo_version}</Typography>}
