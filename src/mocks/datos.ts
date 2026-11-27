@@ -197,8 +197,8 @@ export function crearBackendDemo() {
       id, estudiante_id: e.id, estudiante: `${e.nombres} ${e.apellidos}`, aula: nombreAula(e.aula_id), prediccion_id: e.id,
       riesgo: "rojo", probabilidad: e.probabilidad, factores, leida,
       fecha: new Date(Date.now() - horas * 3_600_000).toISOString(),
-      mensaje: `${e.nombres} ${e.apellidos} (${nombreAula(e.aula_id)}) está en RIESGO ALTO ` +
-        `(${Math.round((e.probabilidad ?? 0) * 100)}%). Factores: ${factores.map(texto).join(", ")}.`,
+      mensaje: `El estudiante ${e.nombres} ${e.apellidos} ha ingresado a nivel de Riesgo Alto. ` +
+        `Aula ${nombreAula(e.aula_id)}, probabilidad ${Math.round((e.probabilidad ?? 0) * 100)}%. Factores: ${factores.map(texto).join(", ")}.`,
     };
   };
   const alertas: Alerta[] = estudiantes.filter((e) => e.riesgo === "rojo").map((e, i) => nuevaAlerta(e, i + 1, i % 3 === 2, i));

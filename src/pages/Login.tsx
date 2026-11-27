@@ -73,7 +73,7 @@ export default function Login() {
     setCargando(origen);
     try {
       const s = await login(correo, clave);
-      navigate(inicioPorRol(s.rol), { replace: true });
+      navigate(inicioPorRol(s.rol), { replace: true, state: { bienvenida: true } }); // HU01: «Bienvenido al sistema»
     } catch (err) {
       setError(mensajeError(err));
     } finally {
